@@ -1,83 +1,125 @@
 @extends('backend.layout.main')
 
 @section('content')
-<div class="container-fluid pt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-9">
-            <div class="card shadow-sm border-0" style="border-radius:12px;">
-                <div class="card-header bg-primary text-white p-4">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap">
-                        <div>
-                            <h3 class="font-weight-bold mb-1"><i class="fa fa-truck mr-2"></i> Pre-Order Details: #{{ $preOrder->order_reference }}</h3>
-                            <p class="mb-0 text-white-50" style="font-size:14px;">Inter-branch pre-order booking specifications and tracking.</p>
-                        </div>
-                        <a href="{{ route('pre_orders.index') }}" class="btn btn-light btn-sm font-weight-bold mt-2 mt-md-0">
-                            <i class="fa fa-arrow-left mr-1"></i> Back to Pre-Orders
+<section class="forms">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <h4>Pre-Order Details: #{{ $preOrder->order_reference }}</h4>
+                        <a href="{{ route('pre_orders.index') }}" class="btn btn-default btn-sm">
+                            <i class="dripicons-arrow-left"></i> Back to Pre-Orders
                         </a>
                     </div>
-                </div>
-
-                <div class="card-body p-4">
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <div class="card bg-light border p-3 h-100">
-                                <h6 class="font-weight-bold text-dark border-bottom pb-2 mb-2">Order Summary</h6>
-                                <p class="mb-1"><strong>Status:</strong> <span class="badge badge-info px-2 py-1 text-uppercase">{{ $preOrder->status }}</span></p>
-                                <p class="mb-1"><strong>Booked On:</strong> {{ \Carbon\Carbon::parse($preOrder->created_at)->format('d M Y, h:i A') }}</p>
-                                <p class="mb-1"><strong>Expected Delivery:</strong> {{ $preOrder->expected_delivery_date ?? 'Not specified' }}</p>
-                                <p class="mb-0"><strong>Created By:</strong> {{ $preOrder->user->name ?? 'Staff' }}</p>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card bg-light border p-3 h-100">
-                                <h6 class="font-weight-bold text-dark border-bottom pb-2 mb-2">Customer Information</h6>
-                                <p class="mb-1"><strong>Name:</strong> {{ $preOrder->customer_name }}</p>
-                                <p class="mb-1"><strong>Phone:</strong> {{ $preOrder->customer_phone }}</p>
-                                <p class="mb-0"><strong>Customer Record:</strong> {{ $preOrder->customer->name ?? 'Walk-in Customer' }}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card bg-light border p-3 mb-4">
-                        <h6 class="font-weight-bold text-dark border-bottom pb-2 mb-3">Device & Logistics Routing</h6>
+                    <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
-                                <p class="mb-1"><strong>Product:</strong> {{ $preOrder->product->name ?? 'N/A' }} ({{ $preOrder->product->code ?? '' }})</p>
-                                <p class="mb-1"><strong>Reserved Serial:</strong> <code class="text-primary font-weight-bold">{{ $preOrder->serial_number ?: 'Any available unit' }}</code></p>
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr><th colspan="2">Order Summary</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td style="width:40%;"><strong>Status:</strong></td>
+                                            <td><span class="badge badge-info">{{ ucfirst($preOrder->status) }}</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Booked On:</strong></td>
+                                            <td>{{ \Carbon\Carbon::parse($preOrder->created_at)->format('d M Y, h:i A') }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Expected Delivery:</strong></td>
+                                            <td>{{ $preOrder->expected_delivery_date ?? 'Not specified' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Created By:</strong></td>
+                                            <td>{{ $preOrder->user->name ?? 'Staff' }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                             <div class="col-md-6">
-                                <p class="mb-1"><strong>Source Branch (Stock):</strong> {{ $preOrder->fromWarehouse->name ?? 'N/A' }}</p>
-                                <p class="mb-1"><strong>Destination Branch (Pickup):</strong> {{ $preOrder->toWarehouse->name ?? 'N/A' }}</p>
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr><th colspan="2">Customer Information</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td style="width:40%;"><strong>Name:</strong></td>
+                                            <td>{{ $preOrder->customer_name }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Phone:</strong></td>
+                                            <td>{{ $preOrder->customer_phone }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Customer Record:</strong></td>
+                                            <td>{{ $preOrder->customer->name ?? 'Walk-in Customer' }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="card bg-light border p-3 mb-4">
-                        <h6 class="font-weight-bold text-dark border-bottom pb-2 mb-3">Financial Settlement</h6>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <small class="text-muted d-block">Agreed Selling Price</small>
-                                <h5 class="font-weight-bold text-dark mb-0">৳{{ number_format($preOrder->price, 2) }}</h5>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr><th colspan="2">Device & Logistics Routing</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td style="width:40%;"><strong>Product:</strong></td>
+                                            <td>{{ $preOrder->product->name ?? 'N/A' }} ({{ $preOrder->product->code ?? '' }})</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Reserved Serial:</strong></td>
+                                            <td><code>{{ $preOrder->serial_number ?: 'Any available unit' }}</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Source Branch (Stock):</strong></td>
+                                            <td>{{ $preOrder->fromWarehouse->name ?? 'N/A' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Destination Branch:</strong></td>
+                                            <td>{{ $preOrder->toWarehouse->name ?? 'N/A' }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
-                            <div class="col-md-4">
-                                <small class="text-muted d-block">Advance Paid</small>
-                                <h5 class="font-weight-bold text-success mb-0">৳{{ number_format($preOrder->advance_amount, 2) }}</h5>
-                            </div>
-                            <div class="col-md-4">
-                                <small class="text-muted d-block">Remaining Due on Delivery</small>
-                                <h5 class="font-weight-bold text-danger mb-0">৳{{ number_format(max(0, $preOrder->price - $preOrder->advance_amount), 2) }}</h5>
+                            <div class="col-md-6">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr><th colspan="2">Financial Settlement</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td style="width:40%;"><strong>Agreed Price:</strong></td>
+                                            <td><strong>{{ number_format($preOrder->price, 2) }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Advance Paid:</strong></td>
+                                            <td><span class="text-success">{{ number_format($preOrder->advance_amount, 2) }}</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Remaining Due:</strong></td>
+                                            <td><span class="text-danger font-weight-bold">{{ number_format(max(0, $preOrder->price - $preOrder->advance_amount), 2) }}</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-                    </div>
 
-                    @if($preOrder->notes)
-                    <div class="alert alert-secondary mb-0">
-                        <strong>Order Notes:</strong> {{ $preOrder->notes }}
+                        @if($preOrder->notes)
+                        <div class="alert alert-secondary mt-3 mb-0">
+                            <strong>Order Notes:</strong> {{ $preOrder->notes }}
+                        </div>
+                        @endif
                     </div>
-                    @endif
                 </div>
             </div>
         </div>
     </div>
-</div>
+</section>
 @endsection

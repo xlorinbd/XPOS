@@ -64,9 +64,9 @@
 
     <!-- PART 1: CUSTOMER COPY -->
     <div class="text-center">
-        <h2 style="margin: 0; font-size: 16px;">KHAN GADGET</h2>
+        <h2 style="margin: 0; font-size: 16px;">{{ $general_setting->site_title ?? 'KGERP' }}</h2>
         <div style="font-size: 10px;">{{ $job->warehouse ? $job->warehouse->address : 'Dhaka, Bangladesh' }}</div>
-        <div style="font-size: 10px;">Helpline: {{ $job->warehouse ? $job->warehouse->phone : '01700000000' }}</div>
+        <div style="font-size: 10px;">Helpline: {{ $job->warehouse ? $job->warehouse->phone : '' }}</div>
         <div class="border-bottom" style="margin-top: 4px;">
             <span class="bold" style="font-size: 13px;">SERVICE INTAKE TOKEN</span><br>
             <span style="font-size: 10px;">(CUSTOMER COPY)</span>
@@ -129,7 +129,7 @@
 
     <div class="border-top" style="font-size: 9px; line-height: 1.3;">
         * Please bring this token when picking up your device.<br>
-        * Khan Gadget is not responsible for any internal data loss. Please back up data before repair.<br>
+        * {{ $general_setting->site_title ?? 'Company' }} is not responsible for any internal data loss. Please back up data before repair.<br>
         * Devices unclaimed within 30 days of completion may be recycled/disposed.
     </div>
 
@@ -140,7 +140,7 @@
 
     <!-- PART 2: LAPTOP CHASSIS TAG -->
     <div class="text-center">
-        <span class="bold" style="font-size: 13px;">KHAN GADGET - DEVICE TAG</span>
+        <span class="bold" style="font-size: 13px;">{{ $general_setting->site_title ?? 'DEVICE' }} - SERVICE TAG</span>
     </div>
 
     <div class="barcode">

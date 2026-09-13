@@ -1,183 +1,178 @@
 @extends('backend.layout.main')
-
 @section('content')
-<div class="container-fluid pt-4">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card shadow-sm border-0" style="border-radius:12px;">
-                <div class="card-header bg-primary text-white p-4">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap">
-                        <div>
-                            <h3 class="font-weight-bold mb-1"><i class="fa fa-wrench mr-2"></i> Warranty Claim & Service Tracking</h3>
-                            <p class="mb-0 text-white-50" style="font-size:14px;">Log warranty claims, track RMA/repairs, assign technician notes, and handle customer delivery.</p>
-                        </div>
-                        <div class="mt-2 mt-md-0">
-                            <a href="{{ route('service_jobs.create') }}" class="btn btn-warning font-weight-bold shadow-sm">
-                                <i class="fa fa-plus-circle mr-1"></i> Open Service Ticket
-                            </a>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Filters -->
-                <div class="card-body bg-light border-bottom py-3 px-4">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap">
-                        <div class="d-flex align-items-center">
-                            <span class="mr-2 font-weight-bold small text-muted">Filter Status:</span>
-                            <select class="form-control form-control-sm font-weight-bold" onchange="location.href=this.value;" style="width:200px;">
-                                <option value="{{ route('service_jobs.index') }}" {{ !$status ? 'selected' : '' }}>All Tickets</option>
-                                <option value="{{ route('service_jobs.index', ['status' => 'received']) }}" {{ $status === 'received' ? 'selected' : '' }}>Received</option>
-                                <option value="{{ route('service_jobs.index', ['status' => 'sent_to_lab']) }}" {{ $status === 'sent_to_lab' ? 'selected' : '' }}>Sent to Lab</option>
-                                <option value="{{ route('service_jobs.index', ['status' => 'under_service']) }}" {{ $status === 'under_service' ? 'selected' : '' }}>Under Service</option>
-                                <option value="{{ route('service_jobs.index', ['status' => 'ready_for_delivery']) }}" {{ $status === 'ready_for_delivery' ? 'selected' : '' }}>Ready for Delivery</option>
-                                <option value="{{ route('service_jobs.index', ['status' => 'delivered']) }}" {{ $status === 'delivered' ? 'selected' : '' }}>Delivered (Closed)</option>
-                                <option value="{{ route('service_jobs.index', ['status' => 'rejected']) }}" {{ $status === 'rejected' ? 'selected' : '' }}>Rejected (Returned)</option>
-                                <option value="{{ route('service_jobs.index', ['status' => 'scrapped']) }}" {{ $status === 'scrapped' ? 'selected' : '' }}>Scrapped / Damaged</option>
+<x-success-message key="message" />
+<x-error-message key="not_permitted" />
+
+<section>
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header mt-2">
+                <h3 class="text-center">{{ __('db.Warranty Claim & Service Tracking') }}</h3>
+            </div>
+            {!! Form::open(['route' => 'service_jobs.index', 'method' => 'get']) !!}
+            <div class="row mb-3">
+                <div class="col-md-4 offset-md-4 mt-3">
+                    <div class="form-group row">
+                        <label class="d-tc mt-2"><strong>{{ __('db.status') }}</strong> &nbsp;</label>
+                        <div class="d-tc flex-grow-1">
+                            <select name="status" class="selectpicker form-control" onchange="this.form.submit();">
+                                <option value="">{{ __('db.All') }}</option>
+                                <option value="received" {{ $status === 'received' ? 'selected' : '' }}>Received</option>
+                                <option value="sent_to_lab" {{ $status === 'sent_to_lab' ? 'selected' : '' }}>Sent to Lab</option>
+                                <option value="under_service" {{ $status === 'under_service' ? 'selected' : '' }}>Under Service</option>
+                                <option value="ready_for_delivery" {{ $status === 'ready_for_delivery' ? 'selected' : '' }}>Ready for Delivery</option>
+                                <option value="delivered" {{ $status === 'delivered' ? 'selected' : '' }}>Delivered (Closed)</option>
+                                <option value="rejected" {{ $status === 'rejected' ? 'selected' : '' }}>Rejected (Returned)</option>
+                                <option value="scrapped" {{ $status === 'scrapped' ? 'selected' : '' }}>Scrapped / Damaged</option>
                             </select>
                         </div>
                     </div>
                 </div>
+            </div>
+            {!! Form::close() !!}
+        </div>
 
-                <!-- Table -->
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="thead-light" style="font-size:12px; text-transform:uppercase;">
-                                <tr>
-                                    <th>Ticket No & Date</th>
-                                    <th>Serial & Product</th>
-                                    <th>Customer</th>
-                                    <th>Problem & Condition</th>
-                                    <th>Warranty</th>
-                                    <th>Technician & Cost</th>
-                                    <th>Status</th>
-                                    <th class="text-right">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse ($serviceJobs as $job)
-                                @php
-                                    $statusBadge = match($job->status) {
-                                        'received' => 'badge-secondary',
-                                        'sent_to_lab' => 'badge-info',
-                                        'under_service' => 'badge-primary',
-                                        'ready_for_delivery' => 'badge-warning',
-                                        'delivered' => 'badge-success',
-                                        'rejected' => 'badge-danger',
-                                        'scrapped' => 'badge-dark',
-                                        default => 'badge-secondary'
-                                    };
-                                @endphp
-                                <tr>
-                                    <td>
-                                        <strong class="text-danger">{{ $job->ticket_no }}</strong>
-                                        <small class="text-muted d-block">{{ $job->created_at->format('d M Y, h:i A') }}</small>
-                                    </td>
-                                    <td>
-                                        <strong>{{ $job->product ? $job->product->name : 'N/A' }}</strong>
-                                        <small class="text-info font-weight-bold d-block">
-                                            <i class="fa fa-barcode"></i> <code>{{ $job->serial_number }}</code>
-                                        </small>
-                                    </td>
-                                    <td>
-                                        <strong>{{ $job->customer_name }}</strong>
-                                        <small class="text-muted d-block">{{ $job->customer_phone }}</small>
-                                    </td>
-                                    <td>
-                                        <div class="small"><strong>Issue:</strong> {{ \Illuminate\Support\Str::limit($job->problem_description, 40) }}</div>
-                                        @if($job->accessories_received)
-                                            <small class="text-muted d-block"><strong>Acc:</strong> {{ $job->accessories_received }}</small>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if($job->is_warranty_covered)
-                                            <span class="badge badge-success"><i class="fa fa-shield"></i> Under Warranty</span>
-                                        @else
-                                            <span class="badge badge-secondary">Paid Service</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <div><strong>Total: ৳{{ number_format($job->total_cost, 2) }}</strong></div>
-                                        <small class="text-muted">Labor: ৳{{ number_format($job->service_charge, 2) }} | Parts: ৳{{ number_format($job->parts_charge, 2) }}</small>
-                                    </td>
-                                    <td>
-                                        <span class="badge {{ $statusBadge }} px-2 py-1 font-weight-bold text-uppercase" style="font-size:11px;">
-                                            {{ str_replace('_', ' ', $job->status) }}
-                                        </span>
-                                    </td>
-                                    <td class="text-right">
-                                        <div class="btn-group">
-                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-toggle="dropdown">
-                                                Action
-                                            </button>
-                                            <div class="dropdown-menu dropdown-menu-right">
-                                                <a class="dropdown-item" href="{{ route('service_jobs.print', $job->id) }}" target="_blank">
-                                                    <i class="fa fa-print mr-1"></i> Print Token / Tag
+        <div class="mb-3">
+            <a href="{{ route('service_jobs.create') }}" class="btn btn-info">
+                <i class="dripicons-plus"></i> {{ __('db.Open Service Ticket') }}
+            </a>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="service-table" class="table table-hover" style="width: 100%">
+                        <thead>
+                            <tr>
+                                <th class="not-exported"></th>
+                                <th>{{ __('db.Ticket No') }}</th>
+                                <th>{{ __('db.date') }}</th>
+                                <th>{{ __('db.product') }}</th>
+                                <th>{{ __('db.Serial Number') }}</th>
+                                <th>{{ __('db.customer') }}</th>
+                                <th>{{ __('db.Problem') }}</th>
+                                <th>{{ __('db.Warranty') }}</th>
+                                <th>{{ __('db.Cost') }}</th>
+                                <th>{{ __('db.status') }}</th>
+                                <th class="not-exported">{{ __('db.action') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($serviceJobs as $key => $job)
+                            @php
+                                $statusBadge = match($job->status) {
+                                    'received' => 'badge-secondary',
+                                    'sent_to_lab' => 'badge-info',
+                                    'under_service' => 'badge-primary',
+                                    'ready_for_delivery' => 'badge-warning',
+                                    'delivered' => 'badge-success',
+                                    'rejected' => 'badge-danger',
+                                    'scrapped' => 'badge-dark',
+                                    default => 'badge-secondary'
+                                };
+                            @endphp
+                            <tr>
+                                <td>{{ $key }}</td>
+                                <td><strong>{{ $job->ticket_no }}</strong></td>
+                                <td>{{ $job->created_at->format('d M Y') }}</td>
+                                <td>
+                                    <strong>{{ $job->product ? $job->product->name : 'N/A' }}</strong>
+                                </td>
+                                <td>
+                                    <code>{{ $job->serial_number }}</code>
+                                </td>
+                                <td>
+                                    {{ $job->customer_name }}
+                                    <small class="text-muted d-block">{{ $job->customer_phone }}</small>
+                                </td>
+                                <td>
+                                    {{ \Illuminate\Support\Str::limit($job->problem_description, 35) }}
+                                </td>
+                                <td>
+                                    @if($job->is_warranty_covered)
+                                        <span class="badge badge-success">{{ __('db.Under Warranty') }}</span>
+                                    @else
+                                        <span class="badge badge-secondary">{{ __('db.Paid Service') }}</span>
+                                    @endif
+                                </td>
+                                <td>{{ number_format($job->total_cost, 2) }}</td>
+                                <td>
+                                    <span class="badge {{ $statusBadge }}">
+                                        {{ str_replace('_', ' ', $job->status) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{ __('db.action') }}
+                                            <span class="caret"></span>
+                                            <span class="sr-only">Toggle Dropdown</span>
+                                        </button>
+                                        <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">
+                                            <li>
+                                                <a class="btn btn-link" href="{{ route('service_jobs.print', $job->id) }}" target="_blank">
+                                                    <i class="dripicons-print"></i> {{ __('db.Print Token') }}
                                                 </a>
+                                            </li>
 
-                                                @if(in_array($job->status, ['received', 'sent_to_lab', 'under_service']))
-                                                    <a class="dropdown-item text-primary font-weight-bold btn-update-status" href="#" data-id="{{ $job->id }}" data-ticket="{{ $job->ticket_no }}" data-status="{{ $job->status }}" data-notes="{{ $job->technician_notes }}" data-service="{{ $job->service_charge }}" data-parts="{{ $job->parts_charge }}">
-                                                        <i class="fa fa-pencil mr-1"></i> Update Status & Diagnosis
-                                                    </a>
-                                                @endif
+                                            @if(in_array($job->status, ['received', 'sent_to_lab', 'under_service']))
+                                            <li>
+                                                <button type="button" class="btn btn-link btn-update-status" data-id="{{ $job->id }}" data-ticket="{{ $job->ticket_no }}" data-status="{{ $job->status }}" data-notes="{{ $job->technician_notes }}" data-service="{{ $job->service_charge }}" data-parts="{{ $job->parts_charge }}">
+                                                    <i class="dripicons-document-edit"></i> {{ __('db.Update Status') }}
+                                                </button>
+                                            </li>
+                                            @endif
 
-                                                @if($job->status === 'ready_for_delivery')
-                                                    <a class="dropdown-item text-success font-weight-bold btn-deliver-job" href="#" data-id="{{ $job->id }}" data-ticket="{{ $job->ticket_no }}" data-total="{{ $job->total_cost }}">
-                                                        <i class="fa fa-check-circle mr-1"></i> Deliver to Customer
-                                                    </a>
-                                                @endif
+                                            @if($job->status === 'ready_for_delivery')
+                                            <li>
+                                                <button type="button" class="btn btn-link btn-deliver-job" data-id="{{ $job->id }}" data-ticket="{{ $job->ticket_no }}" data-total="{{ $job->total_cost }}">
+                                                    <i class="dripicons-checkmark"></i> {{ __('db.Deliver to Customer') }}
+                                                </button>
+                                            </li>
+                                            @endif
 
-                                                @if(!in_array($job->status, ['delivered', 'rejected', 'scrapped']))
-                                                    <div class="dropdown-divider"></div>
-                                                    <a class="dropdown-item text-warning btn-set-status" href="#" data-id="{{ $job->id }}" data-status="rejected">
-                                                        <i class="fa fa-ban mr-1"></i> Reject Claim (Return As-Is)
-                                                    </a>
-                                                    <a class="dropdown-item text-danger btn-set-status" href="#" data-id="{{ $job->id }}" data-status="scrapped">
-                                                        <i class="fa fa-trash mr-1"></i> Mark Scrapped / Dead
-                                                    </a>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="8" class="text-center py-4 text-muted">
-                                        <i class="fa fa-wrench fa-3x mb-2 d-block text-muted"></i>
-                                        No service tickets found.
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                                            @if(!in_array($job->status, ['delivered', 'rejected', 'scrapped']))
+                                            <li class="divider"></li>
+                                            <li>
+                                                <button type="button" class="btn btn-link btn-set-status text-warning" data-id="{{ $job->id }}" data-status="rejected">
+                                                    <i class="dripicons-cross"></i> {{ __('db.Reject Claim') }}
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button type="button" class="btn btn-link btn-set-status text-danger" data-id="{{ $job->id }}" data-status="scrapped">
+                                                    <i class="dripicons-trash"></i> {{ __('db.Mark Scrapped') }}
+                                                </button>
+                                            </li>
+                                            @endif
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
-
-                <!-- Pagination -->
-                @if ($serviceJobs->hasPages())
-                <div class="card-footer bg-white border-top p-3 d-flex justify-content-end">
-                    {{ $serviceJobs->appends(['status' => $status])->links() }}
-                </div>
-                @endif
             </div>
         </div>
     </div>
-</div>
+</section>
 
 <!-- Modal: Update Status & Diagnosis -->
-<div class="modal fade" id="updateStatusModal" tabindex="-1" role="dialog">
+<div class="modal fade" id="updateStatusModal" tabindex="-1" role="dialog" aria-labelledby="updateStatusModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Update Service Ticket</h5>
+                <h5 id="updateStatusModalLabel" class="modal-title">{{ __('db.Update Service Ticket') }}</h5>
                 <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
             </div>
             <form id="updateStatusForm" onsubmit="return false;">
                 @csrf
                 <input type="hidden" id="edit_job_id">
-                <div class="modal-body p-4">
+                <div class="modal-body">
                     <div class="form-group">
-                        <label class="font-weight-bold small">Status *</label>
+                        <label>{{ __('db.status') }} *</label>
                         <select id="edit_status" name="status" class="form-control" required>
                             <option value="sent_to_lab">Sent to Central Lab / Vendor</option>
                             <option value="under_service">Under Service (In Repair)</option>
@@ -186,27 +181,27 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="font-weight-bold small">Technician Diagnosis & Action Taken</label>
+                        <label>{{ __('db.Technician Diagnosis & Action Taken') }}</label>
                         <textarea id="edit_technician_notes" name="technician_notes" class="form-control" rows="3" placeholder="Explain steps taken, components replaced, etc..."></textarea>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 form-group">
-                            <label class="font-weight-bold small">Parts Charge (৳)</label>
+                            <label>{{ __('db.Parts Charge') }}</label>
                             <input type="number" id="edit_parts_charge" name="parts_charge" class="form-control" value="0" min="0" step="any">
                         </div>
                         <div class="col-md-6 form-group">
-                            <label class="font-weight-bold small">Labor / Service Fee (৳)</label>
+                            <label>{{ __('db.Service Charge') }}</label>
                             <input type="number" id="edit_service_charge" name="service_charge" class="form-control" value="0" min="0" step="any">
                         </div>
                     </div>
 
                     <div id="updateStatusAlert" class="mt-2 d-none"></div>
                 </div>
-                <div class="modal-footer bg-light p-3">
-                    <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal">Close</button>
-                    <button type="submit" id="btnSaveStatus" class="btn btn-primary font-weight-bold px-4">
-                        <i class="fa fa-save mr-1"></i> Save Changes
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __('db.close') }}</button>
+                    <button type="submit" id="btnSaveStatus" class="btn btn-primary">
+                        {{ __('db.submit') }}
                     </button>
                 </div>
             </form>
@@ -215,27 +210,27 @@
 </div>
 
 <!-- Modal: Deliver to Customer -->
-<div class="modal fade" id="deliverModal" tabindex="-1" role="dialog">
+<div class="modal fade" id="deliverModal" tabindex="-1" role="dialog" aria-labelledby="deliverModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
-        <div class="modal-content" style="border-radius:12px;">
-            <div class="modal-header bg-success text-white" style="border-radius:12px 12px 0 0;">
-                <h5 class="modal-title font-weight-bold"><i class="fa fa-check-circle mr-2"></i> Deliver Device to Customer</h5>
-                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="deliverModalLabel" class="modal-title">{{ __('db.Deliver Device to Customer') }}</h5>
+                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
             </div>
             <form id="deliverForm" onsubmit="return false;">
                 @csrf
                 <input type="hidden" id="deliver_job_id">
-                <div class="modal-body p-4">
-                    <div class="p-3 bg-light rounded border mb-3">
-                        <h5 class="mb-1 font-weight-bold" id="deliver_ticket_no"></h5>
-                        <div class="d-flex justify-content-between font-weight-bold" style="font-size:16px;">
-                            <span>Total Bill to Collect:</span>
-                            <span class="text-danger" id="deliver_total_cost"></span>
+                <div class="modal-body">
+                    <div class="card p-3 mb-3 bg-light">
+                        <h5 class="mb-1" id="deliver_ticket_no"></h5>
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ __('db.Total Bill to Collect') }}:</strong>
+                            <strong class="text-primary" id="deliver_total_cost"></strong>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label class="font-weight-bold small">Payment Method</label>
+                        <label>{{ __('db.Payment Method') }} *</label>
                         <select id="deliver_paying_method" name="paying_method" class="form-control">
                             <option value="Cash">Cash</option>
                             <option value="Card">Credit / Debit Card</option>
@@ -246,10 +241,10 @@
 
                     <div id="deliverAlert" class="mt-2 d-none"></div>
                 </div>
-                <div class="modal-footer bg-light p-3">
-                    <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal">Close</button>
-                    <button type="submit" id="btnConfirmDelivery" class="btn btn-success font-weight-bold px-4">
-                        <i class="fa fa-handshake-o mr-1"></i> Confirm Delivery & Close
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __('db.close') }}</button>
+                    <button type="submit" id="btnConfirmDelivery" class="btn btn-primary">
+                        {{ __('db.Confirm') }}
                     </button>
                 </div>
             </form>
@@ -261,6 +256,65 @@
 @push('scripts')
 <script type="text/javascript">
     $(document).ready(function() {
+        $('#service-table').DataTable({
+            "order": [],
+            'language': {
+                'lengthMenu': '_MENU_ {{__("db.records per page")}}',
+                "info":      '<small>{{__("db.Showing")}} _START_ - _END_ (_TOTAL_)</small>',
+                "search":  '{{__("db.Search")}}',
+                'paginate': {
+                    'previous': '<i class="dripicons-chevron-left"></i>',
+                    'next': '<i class="dripicons-chevron-right"></i>'
+                }
+            },
+            'columnDefs': [
+                {
+                    "orderable": false,
+                    'targets': [0, -1]
+                }
+            ],
+            dom: '<"row"lfB>rtip',
+            buttons: [
+                {
+                    extend: 'pdf',
+                    text: '<i title="export to pdf" class="fa fa-file-pdf-o"></i>',
+                    exportOptions: {
+                        columns: ':visible:Not(.not-exported)',
+                        rows: ':visible'
+                    }
+                },
+                {
+                    extend: 'excel',
+                    text: '<i title="export to excel" class="dripicons-document-new"></i>',
+                    exportOptions: {
+                        columns: ':visible:Not(.not-exported)',
+                        rows: ':visible'
+                    }
+                },
+                {
+                    extend: 'csv',
+                    text: '<i title="export to csv" class="fa fa-file-text-o"></i>',
+                    exportOptions: {
+                        columns: ':visible:Not(.not-exported)',
+                        rows: ':visible'
+                    }
+                },
+                {
+                    extend: 'print',
+                    text: '<i title="print" class="fa fa-print"></i>',
+                    exportOptions: {
+                        columns: ':visible:Not(.not-exported)',
+                        rows: ':visible'
+                    }
+                },
+                {
+                    extend: 'colvis',
+                    text: '<i title="column visibility" class="fa fa-eye"></i>',
+                    columns: ':gt(0)'
+                }
+            ]
+        });
+
         // Edit Status & Diagnosis Modal
         $('.btn-update-status').on('click', function(e) {
             e.preventDefault();
@@ -283,14 +337,14 @@
                 type: 'POST',
                 data: $(this).serialize(),
                 success: function(resp) {
-                    $('#btnSaveStatus').prop('disabled', false).html('<i class="fa fa-save mr-1"></i> Save Changes');
+                    $('#btnSaveStatus').prop('disabled', false).html('{{ __("db.submit") }}');
                     if (resp && resp.success) {
                         $('#updateStatusAlert').removeClass('d-none alert-danger').addClass('alert alert-success').text(resp.message);
                         setTimeout(function() { location.reload(); }, 1000);
                     }
                 },
                 error: function(xhr) {
-                    $('#btnSaveStatus').prop('disabled', false).html('<i class="fa fa-save mr-1"></i> Save Changes');
+                    $('#btnSaveStatus').prop('disabled', false).html('{{ __("db.submit") }}');
                     var msg = 'Failed to update ticket.';
                     if (xhr.responseJSON && xhr.responseJSON.error) msg = xhr.responseJSON.error;
                     $('#updateStatusAlert').removeClass('d-none alert-success').addClass('alert alert-danger').text(msg);
@@ -337,7 +391,7 @@
 
             $('#deliver_job_id').val(id);
             $('#deliver_ticket_no').text(ticket);
-            $('#deliver_total_cost').text('৳ ' + total.toFixed(2));
+            $('#deliver_total_cost').text(total.toFixed(2));
             $('#deliverAlert').addClass('d-none');
             $('#deliverModal').modal('show');
         });
@@ -352,14 +406,14 @@
                 type: 'POST',
                 data: $(this).serialize(),
                 success: function(resp) {
-                    $('#btnConfirmDelivery').prop('disabled', false).html('<i class="fa fa-handshake-o mr-1"></i> Confirm Delivery & Close');
+                    $('#btnConfirmDelivery').prop('disabled', false).html('{{ __("db.Confirm") }}');
                     if (resp && resp.success) {
                         $('#deliverAlert').removeClass('d-none alert-danger').addClass('alert alert-success').text(resp.message);
                         setTimeout(function() { location.reload(); }, 1200);
                     }
                 },
                 error: function(xhr) {
-                    $('#btnConfirmDelivery').prop('disabled', false).html('<i class="fa fa-handshake-o mr-1"></i> Confirm Delivery & Close');
+                    $('#btnConfirmDelivery').prop('disabled', false).html('{{ __("db.Confirm") }}');
                     var msg = 'Failed to deliver.';
                     if (xhr.responseJSON && xhr.responseJSON.error) msg = xhr.responseJSON.error;
                     $('#deliverAlert').removeClass('d-none alert-success').addClass('alert alert-danger').text(msg);

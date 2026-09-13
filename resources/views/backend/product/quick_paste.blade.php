@@ -3,31 +3,26 @@
 @push('css')
 <style>
     .quick-paste-card {
-        border-radius: 10px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        border: none;
         margin-bottom: 20px;
     }
     .quick-paste-header {
-        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        background: #7c5cc4;
         color: #ffffff;
-        padding: 16px 20px;
-        border-radius: 10px 10px 0 0;
+        padding: 12px 20px;
     }
     .paste-box {
         border: 2px dashed #94a3b8;
         background-color: #f8fafc;
-        border-radius: 8px;
-        padding: 15px;
+        border-radius: 4px;
+        padding: 12px;
         min-height: 90px;
         font-family: monospace;
         font-size: 13px;
         transition: all 0.2s ease;
     }
     .paste-box:focus {
-        border-color: #3b82f6;
+        border-color: #7c5cc4;
         background-color: #ffffff;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
         outline: none;
     }
     .table-preview-container {
@@ -35,7 +30,6 @@
         overflow-y: auto;
         overflow-x: auto;
         border: 1px solid #e2e8f0;
-        border-radius: 8px;
     }
     .table-preview {
         font-size: 12px;
@@ -43,7 +37,7 @@
         margin-bottom: 0;
     }
     .table-preview th {
-        background-color: #1e293b;
+        background-color: #7c5cc4;
         color: #ffffff;
         position: sticky;
         top: 0;
