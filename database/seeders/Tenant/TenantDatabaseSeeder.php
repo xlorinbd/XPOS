@@ -1489,9 +1489,16 @@ class TenantDatabaseSeeder extends Seeder
             DB::table('currencies')->insert([
                 [
                     'id' => 1,
+                    'name' => 'Bangladeshi Taka',
+                    'code' => 'BDT',
+                    'exchange_rate' => 1.0,
+                    'is_active' => 1,
+                ],
+                [
+                    'id' => 2,
                     'name' => 'US Dollar',
                     'code' => 'USD',
-                    'exchange_rate' => 1.0,
+                    'exchange_rate' => 120.0,
                     'is_active' => 1,
                 ]
             ]);
