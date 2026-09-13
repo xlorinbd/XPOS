@@ -198,10 +198,10 @@
 <!-- Modal 1: Inter-Branch Live Stock Lookup -->
 <div class="modal fade" id="interBranchLookupModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content" style="border-radius:12px;">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title font-weight-bold"><i class="fa fa-search mr-2"></i> Live Inter-Branch Stock Lookup</h5>
-                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Live Inter-Branch Stock Lookup</h5>
+                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
             </div>
             <div class="modal-body p-4">
                 <div class="form-group mb-4">
@@ -245,10 +245,10 @@
 <!-- Modal 2: Book Pre-Order Modal -->
 <div class="modal fade" id="bookPreOrderModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
-        <div class="modal-content" style="border-radius:12px;">
-            <div class="modal-header bg-dark text-white" style="border-radius:12px 12px 0 0;">
-                <h5 class="modal-title font-weight-bold"><i class="fa fa-truck mr-2"></i> Book Inter-Branch Pre-Order</h5>
-                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Book Inter-Branch Pre-Order</h5>
+                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
             </div>
             <form id="bookPreOrderForm" onsubmit="return false;">
                 @csrf

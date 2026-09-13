@@ -1,132 +1,243 @@
-@extends('backend.layout.main') @section('content')
+@extends('backend.layout.main')
+@section('content')
 
 <section class="forms">
     <div class="container-fluid">
         <div class="card">
             <div class="card-header mt-2">
-                <h4 class="text-center"><i class="fa fa-line-chart mr-2"></i> Multi-Warehouse Stock & Asset Valuation Report</h4>
+                <h3 class="text-center">{{ __('db.Warehouse Stock & Asset Valuation Report') }}</h3>
             </div>
-            <form method="GET" action="{{ route('report.warehouse_stock_valuation') }}" class="mt-4 mb-3">
-                <div class="col-md-6 offset-md-3">
+            {!! Form::open(['route' => 'report.warehouse_stock_valuation', 'method' => 'get', 'id' => 'report-form']) !!}
+            <div class="row mb-3">
+                <div class="col-md-6 offset-md-3 mt-3 text-center">
                     <div class="form-group row">
-                        <label class="d-tc mt-2"><strong>Select Warehouse:</strong> &nbsp;</label>
+                        <label class="d-tc mt-2"><strong>{{ __('db.Choose Warehouse') }}</strong> &nbsp;</label>
                         <div class="d-tc flex-grow-1">
-                            <div class="input-group">
-                                <select name="warehouse_id" class="form-control selectpicker" data-live-search="true">
-                                    <option value="">All Warehouses</option>
-                                    @foreach($warehouses as $wh)
-                                        <option value="{{ $wh->id }}" {{ $warehouseId == $wh->id ? 'selected' : '' }}>{{ $wh->name }}</option>
-                                    @endforeach
-                                </select>
-                                <div class="input-group-append">
-                                    <button class="btn btn-primary" type="submit">{{ __('db.submit') }}</button>
-                                </div>
-                            </div>
+                            <select id="warehouse_id" name="warehouse_id" class="selectpicker form-control" data-live-search="true">
+                                <option value="">{{ __('db.All Warehouse') }}</option>
+                                @foreach($warehouses as $wh)
+                                    <option value="{{ $wh->id }}" {{ $warehouseId == $wh->id ? 'selected' : '' }}>{{ $wh->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="d-tc ml-2">
+                            <button class="btn btn-primary" type="submit">{{ __('db.submit') }}</button>
                         </div>
                     </div>
                 </div>
-            </form>
+            </div>
+            {!! Form::close() !!}
         </div>
+    </div>
 
-        <!-- Summary Metric Boxes (Native Theme) -->
-        <div class="row mt-3">
-            <div class="col-md-3">
-                <div class="card text-center p-3 border-left border-primary shadow-sm">
-                    <span class="text-muted small text-uppercase font-weight-bold">Salable Stock Value</span>
-                    <h3 class="font-weight-bold text-primary mb-0 mt-1">৳{{ number_format($grandSalableValue, 2) }}</h3>
-                    <small class="text-muted">Available on floor (Specific ID + WAC)</small>
+    <!-- Summary Counts (Native SalePro Theme) -->
+    <div class="container-fluid">
+        <div class="dashboard-counts pt-0">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="wrapper count-title text-center">
+                        <div class="icon"><i class="fa fa-cubes" style="color: #7c5cc4"></i></div>
+                        <div>
+                            <div class="count-number">{{ number_format($grandSalableValue, $general_setting->decimal ?? 2, '.', '') }}</div>
+                            <div class="name"><strong style="color: #7c5cc4">{{ __('db.Salable Stock Value') }}</strong></div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center p-3 border-left border-warning shadow-sm">
-                    <span class="text-muted small text-uppercase font-weight-bold">In-Transit Value</span>
-                    <h3 class="font-weight-bold text-warning mb-0 mt-1">৳{{ number_format($grandInTransitValue, 2) }}</h3>
-                    <small class="text-muted">Inter-branch transfers in transit</small>
+                <div class="col-md-3">
+                    <div class="wrapper count-title text-center">
+                        <div class="icon"><i class="fa fa-truck" style="color: #ffc107"></i></div>
+                        <div>
+                            <div class="count-number">{{ number_format($grandInTransitValue, $general_setting->decimal ?? 2, '.', '') }}</div>
+                            <div class="name"><strong style="color: #ffc107">{{ __('db.In-Transit Value') }}</strong></div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center p-3 border-left border-danger shadow-sm">
-                    <span class="text-muted small text-uppercase font-weight-bold">In-Store Damaged</span>
-                    <h3 class="font-weight-bold text-danger mb-0 mt-1">৳{{ number_format($grandDamagedValue, 2) }}</h3>
-                    <small class="text-muted">Damaged / Defective inventory</small>
+                <div class="col-md-3">
+                    <div class="wrapper count-title text-center">
+                        <div class="icon"><i class="fa fa-exclamation-triangle" style="color: #ff7588"></i></div>
+                        <div>
+                            <div class="count-number">{{ number_format($grandDamagedValue, $general_setting->decimal ?? 2, '.', '') }}</div>
+                            <div class="name"><strong style="color: #ff7588">{{ __('db.In-Store Damaged') }}</strong></div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center p-3 border-left border-info shadow-sm">
-                    <span class="text-muted small text-uppercase font-weight-bold">Pending Vendor RMA</span>
-                    <h3 class="font-weight-bold text-info mb-0 mt-1">৳{{ number_format($grandPendingRmaValue, 2) }}</h3>
-                    <small class="text-muted">Dispatched to vendor (Receivable)</small>
+                <div class="col-md-3">
+                    <div class="wrapper count-title text-center">
+                        <div class="icon"><i class="fa fa-wrench" style="color: #17a2b8"></i></div>
+                        <div>
+                            <div class="count-number">{{ number_format($grandPendingRmaValue, $general_setting->decimal ?? 2, '.', '') }}</div>
+                            <div class="name"><strong style="color: #17a2b8">{{ __('db.Pending Vendor RMA') }}</strong></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Grand Total Banner -->
-        <div class="card bg-dark text-white p-3 mb-4 rounded">
-            <div class="d-flex justify-content-between align-items-center flex-wrap">
-                <div>
-                    <h5 class="mb-0 font-weight-bold"><i class="fa fa-cubes mr-2"></i> Total Enterprise Inventory Asset Valuation</h5>
-                    <small class="text-white-50">Sum of Salable + In-Transit + In-Store Damaged + Pending Vendor RMA</small>
+    <!-- Total Enterprise Inventory Asset Valuation (Native SalePro Card) -->
+    <div class="container-fluid">
+        <div class="card mt-2 mb-3">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h4 class="mb-1" style="color: #555;"><i class="fa fa-building text-primary mr-2"></i> <strong>{{ __('db.Total Enterprise Inventory Asset Valuation') }}</strong></h4>
+                        <p class="text-muted mb-0 small">Sum of Salable + In-Transit + In-Store Damaged + Pending Vendor RMA</p>
+                    </div>
+                    <div class="col-md-4 text-md-right mt-2 mt-md-0">
+                        <span class="text-muted d-block small">Total Valuation</span>
+                        <h2 class="text-primary mb-0 font-weight-bold">{{ number_format($grandTotalValue, $general_setting->decimal ?? 2, '.', '') }}</h2>
+                    </div>
                 </div>
-                <h2 class="font-weight-bold text-success mb-0">৳{{ number_format($grandTotalValue, 2) }}</h2>
             </div>
         </div>
+    </div>
 
-        <!-- Breakdown Table -->
-        <div class="card p-0">
-            <div class="table-responsive">
-                <table class="table table-hover table-striped mb-0" style="width:100%">
-                    <thead class="thead-light">
-                        <tr>
-                            <th>Warehouse / Branch</th>
-                            <th>Available Serials</th>
-                            <th>Serialized Salable (৳)</th>
-                            <th>Accessories / Non-Serial (৳)</th>
-                            <th>Total Salable (৳)</th>
-                            <th>In-Transit Value (৳)</th>
-                            <th>Damaged Value (৳)</th>
-                            <th>Pending Vendor RMA (৳)</th>
-                            <th class="text-right">Total Branch Asset (৳)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($valuationData as $data)
-                        <tr>
-                            <td>
-                                <strong>{{ $data['warehouse']->name }}</strong>
-                                <small class="text-muted d-block">{{ $data['warehouse']->address ?? '' }}</small>
-                            </td>
-                            <td><span class="badge badge-primary px-2 py-1">{{ $data['available_serials_count'] }} pcs</span></td>
-                            <td>৳{{ number_format($data['serialized_salable_value'], 2) }}</td>
-                            <td>৳{{ number_format($data['non_serialized_salable_value'], 2) }}</td>
-                            <td><strong class="text-primary">৳{{ number_format($data['total_salable_value'], 2) }}</strong></td>
-                            <td>৳{{ number_format($data['in_transit_value'], 2) }}</td>
-                            <td>৳{{ number_format($data['damaged_value'], 2) }}</td>
-                            <td>৳{{ number_format($data['pending_rma_value'], 2) }}</td>
-                            <td class="text-right"><strong class="text-success" style="font-size:15px;">৳{{ number_format($data['total_valuation'], 2) }}</strong></td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="9" class="text-center py-4 text-muted">No warehouse data available.</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                    <tfoot class="thead-dark font-weight-bold">
-                        <tr>
-                            <th>Total Summary:</th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th>৳{{ number_format($grandSalableValue, 2) }}</th>
-                            <th>৳{{ number_format($grandInTransitValue, 2) }}</th>
-                            <th>৳{{ number_format($grandDamagedValue, 2) }}</th>
-                            <th>৳{{ number_format($grandPendingRmaValue, 2) }}</th>
-                            <th class="text-right text-success" style="font-size:16px;">৳{{ number_format($grandTotalValue, 2) }}</th>
-                        </tr>
-                    </tfoot>
-                </table>
+    <!-- Breakdown Table (Native SalePro Table) -->
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive mb-4">
+                    <table id="report-table" class="table table-hover" style="width: 100%">
+                        <thead>
+                            <tr>
+                                <th class="not-exported"></th>
+                                <th>{{ __('db.Warehouse') }}</th>
+                                <th>{{ __('db.Available Serials') }}</th>
+                                <th>{{ __('db.Serialized Salable') }}</th>
+                                <th>{{ __('db.Accessories / Non-Serial') }}</th>
+                                <th>{{ __('db.Total Salable') }}</th>
+                                <th>{{ __('db.In-Transit Value') }}</th>
+                                <th>{{ __('db.Damaged Value') }}</th>
+                                <th>{{ __('db.Pending Vendor RMA') }}</th>
+                                <th>{{ __('db.Total Asset') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($valuationData as $key => $data)
+                            <tr>
+                                <td>{{ $key }}</td>
+                                <td>
+                                    <strong>{{ $data['warehouse']->name }}</strong>
+                                    @if(!empty($data['warehouse']->address))
+                                        <br><small class="text-muted">{{ $data['warehouse']->address }}</small>
+                                    @endif
+                                </td>
+                                <td><span class="badge badge-primary">{{ $data['available_serials_count'] }} pcs</span></td>
+                                <td>{{ number_format($data['serialized_salable_value'], $general_setting->decimal ?? 2, '.', '') }}</td>
+                                <td>{{ number_format($data['non_serialized_salable_value'], $general_setting->decimal ?? 2, '.', '') }}</td>
+                                <td><strong>{{ number_format($data['total_salable_value'], $general_setting->decimal ?? 2, '.', '') }}</strong></td>
+                                <td>{{ number_format($data['in_transit_value'], $general_setting->decimal ?? 2, '.', '') }}</td>
+                                <td>{{ number_format($data['damaged_value'], $general_setting->decimal ?? 2, '.', '') }}</td>
+                                <td>{{ number_format($data['pending_rma_value'], $general_setting->decimal ?? 2, '.', '') }}</td>
+                                <td><strong>{{ number_format($data['total_valuation'], $general_setting->decimal ?? 2, '.', '') }}</strong></td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                        <tfoot class="tfoot active">
+                            <tr>
+                                <th></th>
+                                <th>{{ __('db.Total') }}</th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th>{{ number_format($grandSalableValue, $general_setting->decimal ?? 2, '.', '') }}</th>
+                                <th>{{ number_format($grandInTransitValue, $general_setting->decimal ?? 2, '.', '') }}</th>
+                                <th>{{ number_format($grandDamagedValue, $general_setting->decimal ?? 2, '.', '') }}</th>
+                                <th>{{ number_format($grandPendingRmaValue, $general_setting->decimal ?? 2, '.', '') }}</th>
+                                <th>{{ number_format($grandTotalValue, $general_setting->decimal ?? 2, '.', '') }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
 @endsection
+
+@push('scripts')
+<script type="text/javascript">
+    $("ul#report").siblings('a').attr('aria-expanded','true');
+    $("ul#report").addClass("show");
+    $("ul#report #warehouse-stock-valuation-menu").addClass("active");
+
+    $('#report-table').DataTable( {
+        "order": [],
+        'language': {
+            'lengthMenu': '_MENU_ {{__("db.records per page")}}',
+            "info":      '<small>{{__("db.Showing")}} _START_ - _END_ (_TOTAL_)</small>',
+            "search":  '{{__("db.Search")}}',
+            'paginate': {
+                'previous': '<i class="dripicons-chevron-left"></i>',
+                'next': '<i class="dripicons-chevron-right"></i>'
+            }
+        },
+        'columnDefs': [
+            {
+                "orderable": false,
+                'targets': 0
+            },
+            {
+                'render': function(data, type, row, meta){
+                    if(type === 'display'){
+                        data = '<div class="checkbox"><input type="checkbox" class="dt-checkboxes"><label></label></div>';
+                    }
+                    return data;
+                },
+                'checkboxes': {
+                    'selectRow': true,
+                    'selectAllRender': '<div class="checkbox"><input type="checkbox" class="dt-checkboxes"><label></label></div>'
+                },
+                'targets': [0]
+            }
+        ],
+        'select': { style: 'multi',  selector: 'td:first-child'},
+        'lengthMenu': [[10, 25, 50, -1], [10, 25, 50, "All"]],
+        dom: '<"row"lfB>rtip',
+        buttons: [
+            {
+                extend: 'pdf',
+                text: '<i title="export to pdf" class="fa fa-file-pdf-o"></i>',
+                exportOptions: {
+                    columns: ':visible:Not(.not-exported)',
+                    rows: ':visible'
+                },
+                footer:true
+            },
+            {
+                extend: 'excel',
+                text: '<i title="export to excel" class="dripicons-document-new"></i>',
+                exportOptions: {
+                    columns: ':visible:Not(.not-exported)',
+                    rows: ':visible'
+                },
+                footer:true
+            },
+            {
+                extend: 'csv',
+                text: '<i title="export to csv" class="fa fa-file-text-o"></i>',
+                exportOptions: {
+                    columns: ':visible:Not(.not-exported)',
+                    rows: ':visible'
+                },
+                footer:true
+            },
+            {
+                extend: 'print',
+                text: '<i title="print" class="fa fa-print"></i>',
+                exportOptions: {
+                    columns: ':visible:Not(.not-exported)',
+                    rows: ':visible'
+                },
+                footer:true
+            },
+            {
+                extend: 'colvis',
+                text: '<i title="column visibility" class="fa fa-eye"></i>',
+                columns: ':gt(0)'
+            }
+        ]
+    } );
+</script>
+@endpush

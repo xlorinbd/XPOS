@@ -160,10 +160,10 @@
 <!-- Modal: Resolve RMA -->
 <div class="modal fade" id="resolveRmaModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
-        <div class="modal-content" style="border-radius:12px;">
-            <div class="modal-header bg-dark text-white" style="border-radius:12px 12px 0 0;">
-                <h5 class="modal-title font-weight-bold"><i class="fa fa-gavel mr-2"></i> Resolve Vendor RMA</h5>
-                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Resolve Vendor RMA</h5>
+                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
             </div>
             <form id="resolveRmaForm" onsubmit="return false;">
                 @csrf

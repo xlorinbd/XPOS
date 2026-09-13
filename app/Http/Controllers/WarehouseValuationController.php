@@ -10,6 +10,7 @@ use App\Models\Product_Warehouse;
 use App\Models\Transfer;
 use App\Models\ProductTransfer;
 use App\Models\SupplierRma;
+use App\Models\GeneralSetting;
 use Illuminate\Support\Facades\DB;
 
 class WarehouseValuationController extends Controller
@@ -142,6 +143,8 @@ class WarehouseValuationController extends Controller
             $grandTotalValue += $warehouseTotal;
         }
 
+        $general_setting = GeneralSetting::latest()->first();
+
         return view('backend.report.warehouse_stock_valuation', compact(
             'warehouses',
             'warehouseId',
@@ -150,7 +153,8 @@ class WarehouseValuationController extends Controller
             'grandInTransitValue',
             'grandDamagedValue',
             'grandPendingRmaValue',
-            'grandTotalValue'
+            'grandTotalValue',
+            'general_setting'
         ));
     }
 }
