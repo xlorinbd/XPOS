@@ -491,10 +491,10 @@
                     <td><input type="text" class="cell-graphics" value="${escapeHtml(row.dedicated_graphics)}" placeholder="GPU"></td>
                     <td>
                         <select class="cell-condition">
-                            <option value="Used" ${row.product_condition.toLowerCase().includes('used') ? 'selected' : ''}>Used</option>
-                            <option value="Open Box" ${row.product_condition.toLowerCase().includes('open') ? 'selected' : ''}>Open Box</option>
-                            <option value="Brand New" ${row.product_condition.toLowerCase().includes('brand') ? 'selected' : ''}>Brand New</option>
-                            <option value="Box Opened" ${row.product_condition.toLowerCase().includes('box') && !row.product_condition.toLowerCase().includes('open box') ? 'selected' : ''}>Box Opened</option>
+                            <option value="used" ${(row.product_condition||'').toLowerCase().includes('used') ? 'selected' : ''}>Used</option>
+                            <option value="open_box" ${(row.product_condition||'').toLowerCase().includes('open') ? 'selected' : ''}>Open Box</option>
+                            <option value="brand_new" ${(row.product_condition||'').toLowerCase().includes('brand') ? 'selected' : ''}>Brand New</option>
+                            <option value="box_opened" ${(row.product_condition||'').toLowerCase().includes('box') && !(row.product_condition||'').toLowerCase().includes('open') ? 'selected' : ''}>Box Opened</option>
                         </select>
                     </td>
                     <td><input type="text" class="cell-adapter" value="${escapeHtml(row.adapter_condition)}" placeholder="Adapter"></td>
