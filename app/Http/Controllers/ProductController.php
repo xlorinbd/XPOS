@@ -51,7 +51,7 @@ class ProductController extends Controller
         if($role->hasPermissionTo('products-index')){
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();
             $lims_brand_list = Brand::where('is_active', true)->get();
-            $lims_category_list = Category::where('is_active', true)->get();
+            $lims_category_list = category_paths(Category::where('is_active', true)->get());
             $lims_unit_list = Unit::where('is_active', true)->get();
             $lims_tax_list = Tax::where('is_active', true)->get();
 
@@ -313,26 +313,12 @@ class ProductController extends Controller
                 $nestedData['combo_unit_id'] = 'N/A';
             }
 
-            $nestedData['price'] = $product->price;
-            $nestedData['cost'] = $product->cost;
+            $nestedData['price'] = money($product->price);
+            $nestedData['cost'] = can_view_cost() ? money($product->cost) : null;
 
-            if (config('currency_position') == 'prefix') {
-                $stock_worth_price = config('currency').' '.($nestedData['qty'] * $product->price);
-                if(Auth::user()->role_id <= 2)
-                    $stock_worth_cost = config('currency').' '.($nestedData['qty'] * $product->cost);
-                else
-                    $stock_worth_cost = '****';
-
-                $nestedData['stock_worth'] = $stock_worth_price.' / '.$stock_worth_cost;
-            } else {
-                $stock_worth_price = ($nestedData['qty'] * $product->price).' '.config('currency');
-                if(Auth::user()->role_id <= 2)
-                    $stock_worth_cost = ($nestedData['qty'] * $product->cost).' '.config('currency');
-                else
-                    $stock_worth_cost = '****';
-
-                $nestedData['stock_worth'] = $stock_worth_price.' / '.$stock_worth_cost;
-            }
+            $stock_worth_price = money($nestedData['qty'] * $product->price);
+            $stock_worth_cost = can_view_cost() ? money($nestedData['qty'] * $product->cost) : '****';
+            $nestedData['stock_worth'] = $stock_worth_price.' / '.$stock_worth_cost;
 
             // Custom fields values
             foreach($field_names as $field_name) {
@@ -427,7 +413,7 @@ class ProductController extends Controller
             $lims_product_list_without_variant = $this->productWithoutVariant();
             $lims_product_list_with_variant = $this->productWithVariant();
             $lims_brand_list = Brand::where('is_active', true)->get();
-            $lims_category_list = Category::where('is_active', true)->get();
+            $lims_category_list = category_paths(Category::where('is_active', true)->get());
             $lims_unit_list = Unit::where('is_active', true)->get();
             $lims_tax_list = Tax::where('is_active', true)->get();
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();
@@ -484,6 +470,9 @@ class ProductController extends Controller
         ]);
 
         $data = $request->except('image', 'file');
+        $data['processor'] = \App\Services\ProcessorNormalizer::normalize($data['processor'] ?? '')['normalized'] ?: null;
+        $data['is_adapter_item'] = $request->has('is_adapter_item') ? 1 : 0;
+        $data['adapter_model_id'] = $request->input('adapter_model_id') ?: null;
 
         // handle warranty and guarantee
         if (!isset($data['warranty'])) {
@@ -704,6 +693,7 @@ class ProductController extends Controller
             }
 
             if (!empty($serialsToInsert)) {
+                remember_condition_tags(array_column($serialsToInsert, 'detailed_condition'));
                 \App\Models\ProductSerial::withoutEvents(function () use ($serialsToInsert) {
                     foreach ($serialsToInsert as $sData) {
                         \App\Models\ProductSerial::firstOrCreate(
@@ -903,13 +893,13 @@ class ProductController extends Controller
                 $nestedData['reference_no'] = $sale->reference_no;
                 $nestedData['warehouse'] = $sale->warehouse_name;
                 $nestedData['customer'] = $sale->customer_name.' ['.($sale->customer_number).']';
-                $nestedData['qty'] = number_format($sale->qty, config('decimal'));
+                $nestedData['qty'] = amount_format($sale->qty);
                 if($sale->sale_unit_id) {
                     $unit_data = DB::table('units')->select('unit_code')->find($sale->sale_unit_id);
                     $nestedData['qty'] .= ' '.$unit_data->unit_code;
                 }
-                $nestedData['unit_price'] = number_format(($sale->total / $sale->qty), config('decimal'));
-                $nestedData['sub_total'] = number_format($sale->total, config('decimal'));
+                $nestedData['unit_price'] = amount_format(($sale->total / $sale->qty));
+                $nestedData['sub_total'] = amount_format($sale->total);
                 $data[] = $nestedData;
             }
         }
@@ -997,13 +987,13 @@ class ProductController extends Controller
                     $nestedData['supplier'] = $purchase->supplier_name.' ['.($purchase->supplier_number).']';
                 else
                     $nestedData['supplier'] = 'N/A';
-                $nestedData['qty'] = number_format($purchase->qty, config('decimal'));
+                $nestedData['qty'] = amount_format($purchase->qty);
                 if($purchase->purchase_unit_id) {
                     $unit_data = DB::table('units')->select('unit_code')->find($purchase->purchase_unit_id);
                     $nestedData['qty'] .= ' '.$unit_data->unit_code;
                 }
-                $nestedData['unit_cost'] = number_format(($purchase->total / $purchase->qty), config('decimal'));
-                $nestedData['sub_total'] = number_format($purchase->total, config('decimal'));
+                $nestedData['unit_cost'] = amount_format(($purchase->total / $purchase->qty));
+                $nestedData['sub_total'] = amount_format($purchase->total);
                 $data[] = $nestedData;
             }
         }
@@ -1089,13 +1079,13 @@ class ProductController extends Controller
                 $nestedData['reference_no'] = $returns->reference_no;
                 $nestedData['warehouse'] = $returns->warehouse_name;
                 $nestedData['customer'] = $returns->customer_name.' ['.($returns->customer_number).']';
-                $nestedData['qty'] = number_format($returns->qty, config('decimal'));
+                $nestedData['qty'] = amount_format($returns->qty);
                 if($returns->sale_unit_id) {
                     $unit_data = DB::table('units')->select('unit_code')->find($returns->sale_unit_id);
                     $nestedData['qty'] .= ' '.$unit_data->unit_code;
                 }
-                $nestedData['unit_price'] = number_format(($returns->total / $returns->qty), config('decimal'));
-                $nestedData['sub_total'] = number_format($returns->total, config('decimal'));
+                $nestedData['unit_price'] = amount_format(($returns->total / $returns->qty));
+                $nestedData['sub_total'] = amount_format($returns->total);
                 $data[] = $nestedData;
             }
         }
@@ -1183,13 +1173,13 @@ class ProductController extends Controller
                     $nestedData['supplier'] = $return_purchase->supplier_name.' ['.($return_purchase->supplier_number).']';
                 else
                     $nestedData['supplier'] = 'N/A';
-                $nestedData['qty'] = number_format($return_purchase->qty, config('decimal'));
+                $nestedData['qty'] = amount_format($return_purchase->qty);
                 if($return_purchase->purchase_unit_id) {
                     $unit_data = DB::table('units')->select('unit_code')->find($return_purchase->purchase_unit_id);
                     $nestedData['qty'] .= ' '.$unit_data->unit_code;
                 }
-                $nestedData['unit_cost'] = number_format(($return_purchase->total / $return_purchase->qty), config('decimal'));
-                $nestedData['sub_total'] = number_format($return_purchase->total, config('decimal'));
+                $nestedData['unit_cost'] = amount_format(($return_purchase->total / $return_purchase->qty));
+                $nestedData['sub_total'] = amount_format($return_purchase->total);
                 $data[] = $nestedData;
             }
         }
@@ -1234,7 +1224,7 @@ class ProductController extends Controller
             $lims_product_list_without_variant = $this->productWithoutVariant();
             $lims_product_list_with_variant = $this->productWithVariant();
             $lims_brand_list = Brand::where('is_active', true)->get();
-            $lims_category_list = Category::where('is_active', true)->get();
+            $lims_category_list = category_paths(Category::where('is_active', true)->get());
             $lims_unit_list = Unit::where('is_active', true)->get();
             $lims_tax_list = Tax::where('is_active', true)->get();
             $lims_product_data = Product::where('id', $id)->first();
@@ -1308,6 +1298,9 @@ class ProductController extends Controller
 
             $lims_product_data = Product::findOrFail($request->input('id'));
             $data = $request->except('image', 'file', 'prev_img');
+            $data['processor'] = \App\Services\ProcessorNormalizer::normalize($data['processor'] ?? '')['normalized'] ?: null;
+            $data['is_adapter_item'] = $request->has('is_adapter_item') ? 1 : 0;
+            $data['adapter_model_id'] = $request->input('adapter_model_id') ?: null;
             $data['name'] = htmlspecialchars(trim($data['name']), ENT_QUOTES);
             $data['profit_margin_type'] = $request->input('profit_margin_type', 'percentage');
             $data['profit_margin'] = $request->input('profit_margin', 0);
@@ -1618,7 +1611,8 @@ class ProductController extends Controller
                 }
 
                 if (!empty($serialsToInsert)) {
-                    \App\Models\ProductSerial::withoutEvents(function () use ($serialsToInsert) {
+                    remember_condition_tags(array_column($serialsToInsert, 'detailed_condition'));
+                \App\Models\ProductSerial::withoutEvents(function () use ($serialsToInsert) {
                         foreach ($serialsToInsert as $sData) {
                             \App\Models\ProductSerial::firstOrCreate(
                                 ['serial_number' => $sData['serial_number']],
@@ -1873,7 +1867,7 @@ class ProductController extends Controller
             $product[] = $lims_product_data->qty;
             $product[] = $lims_product_data->id;
             $product[] = $variant_id;
-            $product[] = $lims_product_data->cost;
+            $product[] = can_view_cost() ? $lims_product_data->cost : null;
             $product[] = $brand->title ?? 'N/A';
             $product[] = $lims_product_data->unit_id ?? 'N/A';
             $unit = Unit::query()->where('id',$lims_product_data->unit_id)->orWhere('base_unit',$lims_product_data->unit_id)->get()->unique('id') ?? 'N/A';
@@ -2312,7 +2306,7 @@ class ProductController extends Controller
         if ($role->hasPermissionTo('products-add')) {
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();
             $lims_brand_list = Brand::where('is_active', true)->get();
-            $lims_category_list = Category::where('is_active', true)->get();
+            $lims_category_list = category_paths(Category::where('is_active', true)->get());
             $lims_unit_list = Unit::where('is_active', true)->whereNull('base_unit')->get();
 
             return view('backend.product.quick_paste', compact(
@@ -2485,7 +2479,10 @@ class ProductController extends Controller
                     // 4. Product Condition Normalization
                     $condRaw = strtolower(str_replace([' ', '-'], '_', trim($row['product_condition'] ?? '')));
                     $validConditions = ['used', 'open_box', 'brand_new', 'box_opened'];
-                    $condition = in_array($condRaw, $validConditions) ? $condRaw : 'used';
+                    if (!in_array($condRaw, $validConditions)) {
+                        throw new \InvalidArgumentException("Condition is required.");
+                    }
+                    $condition = $condRaw;
 
                     // 5. Generate unique product code
                     $code = !empty($row['code']) ? trim($row['code']) : Keygen::numeric(8)->generate();
@@ -2501,6 +2498,7 @@ class ProductController extends Controller
                         'display' => !empty($row['display']) ? trim($row['display']) : null,
                         'dedicated_graphics' => !empty($row['dedicated_graphics']) ? trim($row['dedicated_graphics']) : null,
                         'adapter_condition' => !empty($row['adapter_condition']) ? trim($row['adapter_condition']) : null,
+                        'remarks' => isset($row['remarks']) && trim($row['remarks']) !== '' ? $row['remarks'] : null,
                         'product_condition' => $condition,
                         'cost' => $cost,
                         'price' => $price,

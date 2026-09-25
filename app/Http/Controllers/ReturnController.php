@@ -248,7 +248,7 @@ class ReturnController extends Controller
                 $nestedData['warehouse'] = $returns->warehouse->name;
                 $nestedData['biller'] = $returns->biller->name;
                 $nestedData['customer'] = $returns->customer->name;
-                $nestedData['grand_total'] = number_format($returns->grand_total / $returns->exchange_rate, config('decimal'));
+                $nestedData['grand_total'] = amount_format($returns->grand_total / $returns->exchange_rate);
                 $nestedData['options'] = '<div class="btn-group">
                             <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">'.__("db.action").'
                               <span class="caret"></span>
@@ -355,8 +355,14 @@ class ReturnController extends Controller
             if($cash_register_data)
                 $data['cash_register_id'] = $cash_register_data->id;
 
-            $lims_account_data = Account::where('is_default', true)->first();
-            $data['account_id'] = $lims_account_data->id;
+            // the refund is paid from the account the user picked (company accounts or this branch's own)
+            $chosenAccount = !empty($data['account_id']) ? Account::find($data['account_id']) : null;
+            if ($chosenAccount && $chosenAccount->usableAt((int) $data['warehouse_id'])) {
+                $data['account_id'] = $chosenAccount->id;
+            } else {
+                $lims_account_data = Account::where('is_default', true)->first();
+                $data['account_id'] = $lims_account_data->id;
+            }
 
             $document = $request->document;
             if ($document) {

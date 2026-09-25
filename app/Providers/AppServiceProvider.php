@@ -35,6 +35,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
         Schema::defaultStringLength(191);
+        // Labels that have no row in the translations table show as readable English instead of "db.Some label".
+        $this->app['translator']->handleMissingKeysUsing(function ($key) {
+            return preg_match('/^(db|file)\.(.+)$/', $key, $m) ? $m[2] : $key;
+        });
         $this->app->bind(\App\ViewModels\ISmsModel::class, \App\ViewModels\SmsModel::class);
 
         if (app()->runningInConsole()) {

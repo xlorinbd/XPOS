@@ -147,7 +147,7 @@ class CustomerController extends Controller
                 }
 
                 $nestedData['reward_point'] = $customer->points;
-                $nestedData['deposited_balance'] = number_format($customer->deposit - $customer->expense, 2);
+                $nestedData['deposited_balance'] = amount_format($customer->deposit - $customer->expense);
 
                 $returned_amount = DB::table('sales')
                                     ->join('returns', 'sales.id', '=', 'returns.sale_id')
@@ -167,7 +167,7 @@ class CustomerController extends Controller
                             ->selectRaw('SUM(grand_total) as grand_total,SUM(paid_amount) as paid_amount')
                             ->first();
 
-                $total_due = number_format($saleData->grand_total - $returned_amount - $saleData->paid_amount, 2);
+                $total_due = amount_format($saleData->grand_total - $returned_amount - $saleData->paid_amount);
                 $nestedData['total_due'] = $total_due;
                 //fetching custom fields data
                 foreach($field_names as $field_name) {
@@ -1088,7 +1088,7 @@ class CustomerController extends Controller
                     'id' => $payment->id,
                     'created_at' => $payment->created_at ? date('Y-m-d', strtotime($payment->created_at)) : '-',
                     'payment_reference' => $payment->payment_reference ?? '-',
-                    'amount' => number_format($payment->amount, 2),
+                    'amount' => amount_format($payment->amount),
                     'paying_method' => ucfirst($payment->paying_method ?? '-'),
                     'payment_at' => $payment->payment_at
                         ? date('Y-m-d H:i', strtotime($payment->payment_at))

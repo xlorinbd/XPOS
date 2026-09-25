@@ -16,6 +16,7 @@
                 <tr>
                     <th class="not-exported"></th>
                     <th>{{__('db.Warehouse')}}</th>
+                    <th>Type</th>
                     <th>{{__('db.Phone Number')}}</th>
                     <th>{{__('db.Email')}}</th>
                     <th>{{__('db.Address')}}</th>
@@ -42,6 +43,7 @@
                 <tr data-id="{{$warehouse->id}}">
                     <td>{{$key}}</td>
                     <td>{{ $warehouse->name }}</td>
+                    <td>{{ App\Models\Warehouse::TYPES[$warehouse->type] ?? ucfirst($warehouse->type) }}</td>
                     <td>{{ $warehouse->phone}}</td>
                     <td>{{ $warehouse->email}}</td>
                     <td>{{ $warehouse->address}}</td>
@@ -89,6 +91,14 @@
             <input type="text" placeholder="{{ __('db.Type WareHouse Name') }}" name="name" required="required" class="form-control">
           </div>
           <div class="form-group">
+            <label>Type *</label>
+            <select name="type" class="form-control" required>
+              @foreach(App\Models\Warehouse::TYPES as $typeKey => $typeLabel)
+              <option value="{{$typeKey}}" {{ $typeKey == 'branch' ? 'selected' : '' }}>{{$typeLabel}}</option>
+              @endforeach
+            </select>
+          </div>
+          <div class="form-group">
             <label>{{__('db.Phone Number')}} *</label>
             <input type="text" name="phone" class="form-control" required>
           </div>
@@ -123,6 +133,14 @@
             <input type="hidden" name="warehouse_id">
             <label>{{__('db.name')}} *</label>
             <input type="text" placeholder="{{ __('db.Type WareHouse Name') }}" name="name" required="required" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Type *</label>
+            <select name="type" class="form-control" required>
+              @foreach(App\Models\Warehouse::TYPES as $typeKey => $typeLabel)
+              <option value="{{$typeKey}}" {{ $typeKey == 'branch' ? 'selected' : '' }}>{{$typeLabel}}</option>
+              @endforeach
+            </select>
           </div>
           <div class="form-group">
             <label>{{__('db.Phone Number')}} *</label>
@@ -225,6 +243,7 @@
 
             $.get(url, function(data) {
                 $("#editModal input[name='name']").val(data['name']);
+                $("#editModal select[name='type']").val(data['type'] || 'branch');
                 $("#editModal input[name='phone']").val(data['phone']);
                 $("#editModal input[name='email']").val(data['email']);
                 $("#editModal textarea[name='address']").val(data['address']);
@@ -248,7 +267,7 @@
         'columnDefs': [
             {
                 "orderable": false,
-                'targets': [0, 5, 6, 7]
+                'targets': [0, 6, 7, 8]
             },
             {
                 'render': function(data, type, row, meta){

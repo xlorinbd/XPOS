@@ -149,6 +149,14 @@ class PurchaseController extends Controller
             $data = $request->except('document');
             $data['user_id'] = Auth::id();
 
+            // Foreign purchases stay In-Transit: nothing is received or added to stock here (see Shipments).
+            $isForeign = ($data['purchase_type'] ?? '') === 'foreign';
+            $data['purchase_type'] = $isForeign ? 'foreign' : 'local';
+            if ($isForeign) {
+                $data['status'] = 4;
+                $data['recieved'] = array_fill(0, count($data['product_id'] ?? []), 0);
+            }
+
             if(!isset($data['reference_no']))
             {
                 $data['reference_no'] = 'pr-' . date("Ymd") . '-'. date("his");
@@ -304,11 +312,10 @@ class PurchaseController extends Controller
                 $lims_product_data->qty = $lims_product_data->qty + $quantity;
                 // update cost, profit margin, and price
 
-                $lims_product_data->cost = $unit_cost[$i];
-                $lims_product_data->profit_margin = $net_unit_margin[$i];
-                $lims_product_data->profit_margin_type = $net_unit_margin_type[$i];
-
-                $lims_product_data->price = $net_unit_price[$i];
+                // The regular price is set on the product itself; a purchase must not overwrite it.
+                if ($quantity > 0) {
+                    $lims_product_data->cost = $unit_cost[$i];
+                }
 
                 $lims_product_data->save();
                 //add quantity to warehouse
@@ -827,8 +834,13 @@ class PurchaseController extends Controller
                 $nestedData['products'] = implode('', $productNames);      // no commas, just join directly
                 $nestedData['products_qty'] = implode('', $productQtys);
 
-                if ($purchase->status == 1) {
-                    $nestedData['purchase_status'] = '<div class="badge badge-success">' . __('db.Recieved') . '</div>';
+                if ($purchase->purchase_type === 'foreign' && $purchase->status != 1) {
+                    $foreignLabel = $purchase->status == 2 ? 'Partly received' : 'In-Transit';
+                    $nestedData['purchase_status'] = '<div class="badge badge-warning">' . $foreignLabel . '</div> <div class="badge badge-dark">Foreign</div>';
+                    $purchase_status = $foreignLabel;
+                }
+                elseif ($purchase->status == 1) {
+                    $nestedData['purchase_status'] = '<div class="badge badge-success">' . __('db.Recieved') . '</div>' . ($purchase->purchase_type === 'foreign' ? ' <div class="badge badge-dark">Foreign</div>' : '');
                     $purchase_status = __('db.Recieved');
                 }
                 elseif($purchase->status == 2){
@@ -852,14 +864,11 @@ class PurchaseController extends Controller
                 if(!$purchase->exchange_rate || $purchase->exchange_rate == 0)
                     $purchase->exchange_rate = 1;
 
-                $nestedData['grand_total'] = number_format($purchase->grand_total / $purchase->exchange_rate, config('decimal'));
+                $nestedData['grand_total'] = amount_format($purchase->grand_total / $purchase->exchange_rate);
                 $returned_amount = DB::table('return_purchases')->where('purchase_id', $purchase->id)->sum('grand_total');
-                $nestedData['returned_amount'] = number_format($returned_amount / $purchase->exchange_rate, config('decimal'));
-                $nestedData['paid_amount'] = number_format($purchase->paid_amount / $purchase->exchange_rate, config('decimal'));
-                $nestedData['due'] = number_format(
-                    max(0, ($purchase->grand_total - $returned_amount - $purchase->paid_amount) / $purchase->exchange_rate),
-                    config('decimal')
-                );
+                $nestedData['returned_amount'] = amount_format($returned_amount / $purchase->exchange_rate);
+                $nestedData['paid_amount'] = amount_format($purchase->paid_amount / $purchase->exchange_rate);
+                $nestedData['due'] = amount_format(max(0, ($purchase->grand_total - $returned_amount - $purchase->paid_amount) / $purchase->exchange_rate));
                 //fetching custom fields data
                 foreach($field_names as $field_name) {
                     $nestedData[$field_name] = $purchase->$field_name;
@@ -1153,6 +1162,12 @@ class PurchaseController extends Controller
     public function update(UpdatePurchaseRequest $request, $id)
     {
         $lims_purchase_data = Purchase::find($id);
+        if ($lims_purchase_data && $lims_purchase_data->purchase_type === 'foreign') {
+            if (\App\Models\ShipmentItem::where('purchase_id', $id)->exists()) {
+                return redirect('purchases')->with('not_permitted', 'This foreign purchase already has shipments. Stock is managed from Shipments, so it can no longer be edited here.');
+            }
+            $request->merge(['recieved' => array_fill(0, count($request->input('product_id', [])), 0), 'status' => 4]);
+        }
         $data = $request->except('document');
         $document = $request->document;
         if ($document) {
@@ -1735,6 +1750,11 @@ class PurchaseController extends Controller
                     $lims_purchase_data = Purchase::find($id);
                     $lims_product_purchase_data = ProductPurchase::where('purchase_id', $id)->get();
 
+                    if (\App\Models\ShipmentItem::where('purchase_id', $id)->exists()) {
+                        DB::rollBack();
+                        return response()->json(['deleted' => [], 'message' => 'A selected purchase has shipments, so it cannot be deleted.'], 403);
+                    }
+
                     if ($this->purchaseHasSale($lims_product_purchase_data)) {
                         return response()->json(['deleted' => [], 'message' =>  'Can not delete, purchase has sale!'], 403);
                     }
@@ -1847,6 +1867,10 @@ class PurchaseController extends Controller
         if($role->hasPermissionTo('purchases-delete')){
             $lims_purchase_data = Purchase::find($id);
             $lims_product_purchase_data = ProductPurchase::where('purchase_id', $id)->get();
+
+            if (\App\Models\ShipmentItem::where('purchase_id', $id)->exists()) {
+                return redirect('purchases')->with('not_permitted', 'This purchase has shipments, so it cannot be deleted.');
+            }
 
             if ($this->purchaseHasSale($lims_product_purchase_data)) {
                 return redirect('purchases')->with('not_permitted', __('db.Can not delete, purchase has sale!'));
@@ -2234,7 +2258,7 @@ class PurchaseController extends Controller
                 $paymentStatus = $purchase->paid_amount >= $purchase->grand_total ? 'Paid' :
                                 ($purchase->paid_amount > 0 ? 'Partial' : 'Due');
 
-                $paymentDue = number_format($purchase->grand_total - $purchase->paid_amount, 2);
+                $paymentDue = amount_format($purchase->grand_total - $purchase->paid_amount);
 
                 $warehouseName = $purchase->warehouse_id ? optional(Warehouse::find($purchase->warehouse_id))->name : '-';
                 $supplier = $purchase->supplier;
@@ -2246,8 +2270,8 @@ class PurchaseController extends Controller
                     'warehouse' => $warehouseName,
                     'purchase_status' => $purchaseStatus,
                     'payment_status' => $paymentStatus,
-                    'grand_total' => number_format($purchase->grand_total, 2),
-                    'paid_amount' => number_format($purchase->paid_amount, 2),
+                    'grand_total' => amount_format($purchase->grand_total),
+                    'paid_amount' => amount_format($purchase->paid_amount),
                     'payment_due' => $paymentDue,
                     'note' => $purchase->note,
                     'currency' => $purchase->currency ?? null,
@@ -2512,7 +2536,7 @@ class PurchaseController extends Controller
                 $payments = Payment::where('sale_id', $sale->id)->select('amount','paying_method')->get();
                 $paymentMethods = $payments->map(function ($payment) use ($sale) {
                     return ucfirst($payment->paying_method ?? '') .
-                        '(' . number_format($payment->amount / $sale->exchange_rate,  config('decimal')) . ')';
+                        '(' . amount_format($payment->amount / $sale->exchange_rate) . ')';
                 })->implode(', ');
 
                 $nestedData['payment_method'] = $paymentMethods;
@@ -2566,11 +2590,11 @@ class PurchaseController extends Controller
                 else
                     $nestedData['delivery_status'] = 'N/A';
 
-                $nestedData['grand_total'] = number_format($sale->grand_total / $sale->exchange_rate, config('decimal'));
+                $nestedData['grand_total'] = amount_format($sale->grand_total / $sale->exchange_rate);
                 $returned_amount = DB::table('returns')->where('sale_id', $sale->id)->sum('grand_total');
-                $nestedData['returned_amount'] = number_format($returned_amount / $sale->exchange_rate, config('decimal'));
-                $nestedData['paid_amount'] = number_format($sale->paid_amount / $sale->exchange_rate, config('decimal'));
-                $nestedData['due'] = number_format(($sale->grand_total - $returned_amount - $sale->paid_amount) / $sale->exchange_rate, config('decimal'));
+                $nestedData['returned_amount'] = amount_format($returned_amount / $sale->exchange_rate);
+                $nestedData['paid_amount'] = amount_format($sale->paid_amount / $sale->exchange_rate);
+                $nestedData['due'] = amount_format(($sale->grand_total - $returned_amount - $sale->paid_amount) / $sale->exchange_rate);
                 //fetching custom fields data
                 foreach($field_names as $field_name) {
                     $nestedData[$field_name] = $sale->$field_name;

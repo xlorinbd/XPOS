@@ -100,7 +100,7 @@
                                         <small class="text-muted d-block">{{ $record->notes }}</small>
                                     @endif
                                 </td>
-                                <td>{{ number_format($record->damage_cost, 2) }}</td>
+                                <td>{{ amount_format($record->damage_cost) }}</td>
                                 <td>{{ $record->responsible_person ?: '—' }}</td>
                                 <td>
                                     <span class="badge {{ $statusBadge }}">
@@ -161,13 +161,9 @@
                     <div class="form-group">
                         <label>{{ __('db.Reason / Fault') }} *</label>
                         <select name="damage_reason" class="form-control selectpicker" required>
-                            <option value="Dead on Arrival (DOA)">Dead on Arrival (DOA)</option>
-                            <option value="Display / Screen Defect">Display / Screen Defect</option>
-                            <option value="Physical / Body Damage">Physical / Body Damage</option>
-                            <option value="Liquid / Moisture Damage">Liquid / Moisture Damage</option>
-                            <option value="Motherboard / Power Failure">Motherboard / Power Failure</option>
-                            <option value="Customer Return (Defective)">Customer Return (Defective)</option>
-                            <option value="Other Defect">Other Defect</option>
+                            @foreach(\App\Models\Lookup::ofType('damage_type')->active()->orderBy('name')->get() as $kgDt)
+                                <option value="{{ $kgDt->name }}">{{ $kgDt->name }}</option>
+                            @endforeach
                         </select>
                     </div>
 

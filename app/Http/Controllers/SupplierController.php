@@ -256,7 +256,7 @@ class SupplierController extends Controller
         $balance = 0;
         foreach ($ledger as $key => $row) {
             $balance += ($row['debit'] - $row['credit']); // debit increases payable
-            $ledger[$key]['balance'] = number_format($balance, 2);
+            $ledger[$key]['balance'] = amount_format($balance);
         }
 
         return response()->json(['data' => $ledger]);
@@ -447,7 +447,7 @@ class SupplierController extends Controller
                     'id' => $payment->id,
                     'created_at' => $payment->created_at ? date('Y-m-d', strtotime($payment->created_at)) : '-',
                     'payment_reference' => $payment->payment_reference ?? '-',
-                    'amount' => number_format($payment->amount, 2),
+                    'amount' => amount_format($payment->amount),
                     'paying_method' => ucfirst($payment->paying_method ?? '-'),
                     'payment_at' => $payment->payment_at ? date('Y-m-d H:i', strtotime($payment->payment_at)) : date('Y-m-d H:i', strtotime($payment->created_at)),
                 ];

@@ -137,7 +137,7 @@ class IncomeController extends Controller
                 $nestedData['reference_no'] = $income->reference_no;
                 $nestedData['warehouse'] = $income->warehouse->name;
                 $nestedData['incomeCategory'] = $income->incomeCategory->name;
-                $nestedData['amount'] = number_format($income->amount, config('decimal'));
+                $nestedData['amount'] = amount_format($income->amount);
                 $nestedData['note'] = $income->note;
                 $nestedData['options'] = '<div class="btn-group">
                             <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">'.__("db.action").'

@@ -2,78 +2,90 @@
 
 namespace App\Services;
 
+use App\Models\Lookup;
+
 class ProcessorNormalizer
 {
     /**
-     * Normalize messy processor string locally using pattern matching
+     * Normalize a typed processor name.
+     * 1. If it matches an entry of the admin-managed Processor List, that entry is returned exactly as listed.
+     * 2. Otherwise well-known families are formatted with trademark marks (Intel® Core™ i7-1165G7, AMD Ryzen™ 5 7535HS).
+     * 3. Anything else is kept exactly as typed.
      *
-     * @param string|null $raw
-     * @return array ['normalized' => string, 'is_recognized' => bool, 'original' => string]
+     * @return array ['normalized' => string, 'is_recognized' => bool, 'original' => string, 'source' => 'list'|'pattern'|'none']
      */
     public static function normalize(?string $raw): array
     {
         if (empty($raw) || trim($raw) === '') {
-            return [
-                'normalized' => '',
-                'is_recognized' => false,
-                'original' => ''
-            ];
+            return ['normalized' => '', 'is_recognized' => false, 'original' => '', 'source' => 'none'];
         }
 
         $clean = trim($raw);
-        $normalized = $clean;
-        $is_recognized = false;
 
-        // 1. Apple Silicon Normalization
+        $listed = self::fromList($clean);
+        if ($listed !== null) {
+            return ['normalized' => $listed, 'is_recognized' => true, 'original' => $clean, 'source' => 'list'];
+        }
+
+        $formatted = self::format($clean);
+        if ($formatted !== null) {
+            // A pattern-formatted name may still match a list entry that was stored in another spelling.
+            $listed = self::fromList($formatted);
+            return [
+                'normalized' => $listed ?? $formatted,
+                'is_recognized' => true,
+                'original' => $clean,
+                'source' => $listed ? 'list' : 'pattern',
+            ];
+        }
+
+        return ['normalized' => $clean, 'is_recognized' => false, 'original' => $clean, 'source' => 'none'];
+    }
+
+    private static function fromList(string $text): ?string
+    {
+        try {
+            $key = Lookup::processorKey($text);
+            if ($key === '') {
+                return null;
+            }
+            return Lookup::ofType('processor')->active()->where('match_key', $key)->value('name');
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private static function format(string $clean): ?string
+    {
+        $out = null;
+
+        // Apple Silicon
         if (preg_match('/^m([1-4])\s*(ultra|max|pro)?/i', $clean, $m)) {
-            $gen = 'M' . $m[1];
-            $tier = isset($m[2]) && !empty($m[2]) ? ' ' . ucfirst(strtolower($m[2])) : '';
-            $normalized = "Apple {$gen}{$tier} Chip";
-            $is_recognized = true;
+            $tier = !empty($m[2]) ? ' ' . ucfirst(strtolower($m[2])) : '';
+            $out = "Apple M{$m[1]}{$tier} Chip";
         }
-        // 2. Intel Core Ultra (e.g. Ultra 7 155H, Ultra 5 125H)
-        elseif (preg_match('/(?:intel\s*)?(?:core\s*)?ultra\s*([579])\s*[-]?\s*(\d{3}[a-z]*)/i', $clean, $m)) {
-            $series = $m[1];
-            $model = strtoupper($m[2]);
-            $normalized = "Intel Core Ultra {$series} {$model}";
-            $is_recognized = true;
+        // Intel Core Ultra (e.g. Ultra 7 155H)
+        elseif (preg_match('/(?:intel\W*)?(?:core\W*)?ultra\s*([579])\s*[-]?\s*(\d{3}[a-z]*)/i', $clean, $m)) {
+            $out = 'Intel® Core™ Ultra ' . $m[1] . ' ' . strtoupper($m[2]);
         }
-        // 3. Intel Core i3 / i5 / i7 / i9 (e.g. i7 13700H, core i5-1235U, i5 12th gen 1240p)
-        elseif (preg_match('/(?:intel\s*)?(?:core\s*)?i([3579])\s*(?:[-]?\s*(?:\d+th\s*gen)?\s*)?[-]?\s*(\d{4,5}[a-z]*)/i', $clean, $m)) {
-            $series = $m[1];
-            $model = strtoupper($m[2]);
-            $normalized = "Intel Core i{$series}-{$model}";
-            $is_recognized = true;
+        // Intel Core i3 / i5 / i7 / i9
+        elseif (preg_match('/(?:intel\W*)?(?:core\W*)?i([3579])\s*(?:[-]?\s*(?:\d+th\s*gen)?\s*)?[-]?\s*(\d{4,5}[a-z]*\d?[a-z]*)/i', $clean, $m)) {
+            $out = 'Intel® Core™ i' . $m[1] . '-' . strtoupper($m[2]);
         }
-        // 4. AMD Ryzen 3 / 5 / 7 / 9 (e.g. r7 6800h, ryzen 5 5600u, AMD Ryzen 7-7730U)
-        elseif (preg_match('/(?:amd\s*)?(?:r|ryzen)\s*([3579])\s*(?:ai)?\s*[-]?\s*(\d{4}[a-z]*)/i', $clean, $m)) {
-            $series = $m[1];
-            $model = strtoupper($m[2]);
-            $normalized = "AMD Ryzen {$series} {$model}";
-            $is_recognized = true;
+        // AMD Ryzen 3 / 5 / 7 / 9
+        elseif (preg_match('/(?:amd\W*)?(?:r|ryzen)\W*\s*([3579])\s*(?:ai)?\s*[-]?\s*(\d{4}[a-z]*\d?[a-z]*)/i', $clean, $m)) {
+            $out = 'AMD Ryzen™ ' . $m[1] . ' ' . strtoupper($m[2]);
         }
-        // 5. AMD Athlon
-        elseif (preg_match('/(?:amd\s*)?athlon\s*(?:silver|gold)?\s*[-]?\s*([0-9a-z]+)/i', $clean, $m)) {
-            $model = strtoupper($m[1]);
-            $normalized = "AMD Athlon {$model}";
-            $is_recognized = true;
+        // AMD Athlon
+        elseif (preg_match('/(?:amd\W*)?athlon\W*\s*(?:silver|gold)?\s*[-]?\s*([0-9a-z]+)/i', $clean, $m)) {
+            $out = 'AMD Athlon™ ' . strtoupper($m[1]);
         }
-        // 6. Intel Celeron / Pentium
-        elseif (preg_match('/(?:intel\s*)?(celeron|pentium)\s*[-]?\s*([0-9a-z]+)/i', $clean, $m)) {
-            $family = ucfirst(strtolower($m[1]));
-            $model = strtoupper($m[2]);
-            $normalized = "Intel {$family} {$model}";
-            $is_recognized = true;
+        // Intel Celeron / Pentium
+        elseif (preg_match('/(?:intel\W*)?(celeron|pentium)\W*\s*[-]?\s*([0-9a-z]+)/i', $clean, $m)) {
+            $out = 'Intel® ' . ucfirst(strtolower($m[1])) . '® ' . strtoupper($m[2]);
         }
 
-        // Clean extra double spaces
-        $normalized = preg_replace('/\s+/', ' ', $normalized);
-
-        return [
-            'normalized' => $normalized,
-            'is_recognized' => $is_recognized,
-            'original' => $clean
-        ];
+        return $out === null ? null : trim(preg_replace('/\s+/', ' ', $out));
     }
 
     /**
@@ -89,7 +101,6 @@ class ProcessorNormalizer
             return (float) $raw;
         }
 
-        // Remove currency symbols, commas, spaces, currency abbreviations (Tk, BDT, etc.)
         $cleaned = preg_replace('/[^\d.]/', '', (string) $raw);
 
         return is_numeric($cleaned) ? (float) $cleaned : null;

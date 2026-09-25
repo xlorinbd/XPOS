@@ -36,10 +36,10 @@
             <div class="row">
                 <div class="col-md-3">
                     <div class="wrapper count-title text-center">
-                        <div class="icon"><i class="fa fa-cubes" style="color: #7c5cc4"></i></div>
+                        <div class="icon"><i class="fa fa-cubes" style="color: #111111"></i></div>
                         <div>
                             <div class="count-number">{{ number_format($grandSalableValue, $general_setting->decimal ?? 2, '.', '') }}</div>
-                            <div class="name"><strong style="color: #7c5cc4">{{ __('db.Salable Stock Value') }}</strong></div>
+                            <div class="name"><strong style="color: #111111">{{ __('db.Salable Stock Value') }}</strong></div>
                         </div>
                     </div>
                 </div>

@@ -45,7 +45,7 @@
                                     <select name="product_id" id="pre_product_id" class="form-control selectpicker" data-live-search="true" title="Select product..." required>
                                         @foreach($products as $p)
                                             <option value="{{ $p->id }}" data-price="{{ $p->price }}" data-floor="{{ $p->last_border_price ?? 0 }}" {{ $selectedProductId == $p->id ? 'selected' : '' }}>
-                                                {{ $p->name }} [{{ $p->code }}] - Retail: {{ number_format($p->price, 2) }}
+                                                {{ $p->name }} [{{ $p->code }}] - Retail: {{ amount_format($p->price) }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -92,18 +92,27 @@
                                 </div>
 
                                 <div class="col-md-4 form-group">
-                                    <label>Advance Deposit Received</label>
-                                    <input type="number" step="0.01" name="advance_amount" id="advance_amount" class="form-control" value="0.00">
+                                    <label>Advance Deposit * (required)</label>
+                                    <input type="number" step="0.01" min="1" name="advance_amount" id="advance_amount" class="form-control" placeholder="0.00" required>
                                 </div>
 
                                 <div class="col-md-4 form-group">
-                                    <label>Advance Payment Method</label>
-                                    <select name="paying_method" id="paying_method" class="form-control selectpicker">
+                                    <label>Advance Payment Method *</label>
+                                    <select name="paying_method" id="paying_method" class="form-control">
                                         <option value="Cash">Cash</option>
-                                        <option value="Card">Card</option>
-                                        <option value="Bkash">Bkash / Mobile Banking</option>
                                         <option value="Bank Transfer">Bank Transfer</option>
+                                        <option value="Mobile Banking">Mobile Banking</option>
+                                        <option value="Card">Card</option>
                                     </select>
+                                </div>
+
+                                <div class="col-md-4 form-group">
+                                    <label>Goes into account</label>
+                                    <select name="advance_account_id" id="advance_account_id" class="form-control"></select>
+                                </div>
+
+                                <div class="col-md-12">
+                                    <small id="kindHint" class="text-muted"></small>
                                 </div>
 
                                 <div class="col-md-6 form-group">
@@ -119,10 +128,10 @@
 
                             <div class="form-group mt-3">
                                 <button type="submit" id="btnSubmitPreOrder" class="btn btn-primary">
-                                    {{trans('file.submit')}}
+                                    {{ __('db.submit') }}
                                 </button>
                                 <a href="{{ route('pre_orders.index') }}" class="btn btn-secondary">
-                                    {{trans('file.Cancel')}}
+                                    {{ __('db.Cancel') }}
                                 </a>
                             </div>
                         </form>
@@ -136,7 +145,16 @@
 
 @push('scripts')
 <script type="text/javascript">
+var kgAccounts = {!! \App\Models\Account::where('is_active', true)->get(['id', 'name', 'type', 'warehouse_id'])->toJson() !!};
 $(document).ready(function() {
+    function refreshAccountsAndKind() {
+        kgFillAccounts($('#advance_account_id'), kgAccounts, $('#to_warehouse_id').val(), $('#paying_method').val());
+        var same = $('#from_warehouse_id').val() && String($('#from_warehouse_id').val()) === String($('#to_warehouse_id').val());
+        $('#kindHint').text(same ? 'Same branch: this is a Pre-Booking. The unit stays here, set aside for the customer.' : 'Different branch: this is a Pre-Order. The unit is sent from the source branch (items still in transit from abroad cannot be pre-ordered).');
+    }
+    $('#to_warehouse_id, #from_warehouse_id, #paying_method').on('change changed.bs.select', refreshAccountsAndKind);
+    setTimeout(refreshAccountsAndKind, 300);
+
     $('#pre_product_id').on('change', function() {
         var opt = $(this).find(':selected');
         var price = opt.data('price') || 0;
@@ -147,7 +165,7 @@ $(document).ready(function() {
         }
 
         if (floor > 0) {
-            $('#productFloorNotice').text('Border Floor: ' + parseFloat(floor).toLocaleString() + ' (Cannot sell below this price)');
+            $('#productFloorNotice').text('Border Floor: ' + parseFloat(floor).toLocaleString() + ' (Selling below this needs a reason)');
         } else {
             $('#productFloorNotice').text('');
         }
@@ -168,7 +186,7 @@ $(document).ready(function() {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function(resp) {
-                btn.prop('disabled', false).text("{{trans('file.submit')}}");
+                btn.prop('disabled', false).text("{{ __('db.submit') }}");
                 if (resp.success) {
                     $('#preOrderAlert').removeClass('d-none').addClass('alert alert-success')
                         .text(resp.message + ' Redirecting...');
@@ -178,7 +196,14 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr) {
-                btn.prop('disabled', false).text("{{trans('file.submit')}}");
+                btn.prop('disabled', false).text("{{ __('db.submit') }}");
+                if (xhr.responseJSON && xhr.responseJSON.needs_border_reason) {
+                    kgBorderReason(xhr.responseJSON.lines, function (reason) {
+                        $('#createPreOrderForm input[name="border_price_reason"]').remove();
+                        $('#createPreOrderForm').append($('<input type="hidden" name="border_price_reason">').val(reason)).trigger('submit');
+                    });
+                    return;
+                }
                 var msg = 'An error occurred while creating pre-order.';
                 if (xhr.responseJSON && xhr.responseJSON.error) {
                     msg = xhr.responseJSON.error;

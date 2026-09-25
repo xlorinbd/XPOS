@@ -92,9 +92,9 @@
                                         </select>
                                     </div>
                                     <div class="form-group" id="warehouseId">
-                                        <label>{{__('db.Warehouse')}} *</strong></label>
-                                        <input type="hidden" name="warehouse_id_hidden" value="{{$lims_user_data->warehouse_id}}">
-                                        <select name="warehouse_id" class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" title="Select Warehouse...">
+                                        <label>Branch(es) *</strong> <small class="text-muted">(one or more)</small></label>
+                                        <input type="hidden" name="warehouse_id_hidden" value="{{ implode(',', $assigned_branch_ids ?? []) }}">
+                                        <select name="warehouse_ids[]" multiple class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" title="Select Branch(es)...">
                                           @foreach($lims_warehouse_list as $warehouse)
                                               <option value="{{$warehouse->id}}">{{$warehouse->name}}</option>
                                           @endforeach
@@ -124,7 +124,7 @@
     $('select[name=role_id]').val($("input[name='role_id_hidden']").val());
     if($('select[name=role_id]').val() > 2){
         $('#warehouseId').show();
-        $('select[name=warehouse_id]').val($("input[name='warehouse_id_hidden']").val());
+        $('select[name="warehouse_ids[]"]').val($("input[name='warehouse_id_hidden']").val().split(','));
         $('#biller-id').show();
         $('select[name=biller_id]').val($("input[name='biller_id_hidden']").val());
     }
@@ -132,13 +132,13 @@
 
     $('select[name="role_id"]').on('change', function() {
         if($(this).val() > 2){
-            $('select[name="warehouse_id"]').prop('required',true);
+            $('select[name="warehouse_ids[]"]').prop('required',true);
             $('select[name="biller_id"]').prop('required',true);
             $('#biller-id').show();
             $('#warehouseId').show();
         }
         else{
-            $('select[name="warehouse_id"]').prop('required',false);
+            $('select[name="warehouse_ids[]"]').prop('required',false);
             $('select[name="biller_id"]').prop('required',false);
             $('#biller-id').hide();
             $('#warehouseId').hide();

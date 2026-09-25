@@ -131,7 +131,7 @@ class DeliveryController extends Controller
                 $nestedData['courier'] = $delivery->courier_id ? $delivery->courier->name : 'N/A';
                 $nestedData['address'] = $delivery->address;
                 $nestedData['products'] = implode(",", $product_names);
-                $nestedData['grand_total'] = number_format($customer_sale[0]->grand_total, 2);
+                $nestedData['grand_total'] = amount_format($customer_sale[0]->grand_total);
                 if($delivery->status == 1)
                     $nestedData['status'] = '<div class="badge badge-primary">'.__('db.Packing').'</div>';
                 elseif($delivery->status == 2)

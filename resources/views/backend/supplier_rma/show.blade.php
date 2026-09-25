@@ -80,7 +80,7 @@
                                             </td>
                                             <td style="width:50%;">
                                                 <p><strong>Defect Reason:</strong> {{ $supplierRma->reason }}</p>
-                                                <p class="mb-0"><strong>Purchase Unit Cost:</strong> {{ number_format($supplierRma->purchase_cost, 2) }}</p>
+                                                <p class="mb-0"><strong>Purchase Unit Cost:</strong> {{ amount_format($supplierRma->purchase_cost) }}</p>
                                             </td>
                                         </tr>
                                     </tbody>

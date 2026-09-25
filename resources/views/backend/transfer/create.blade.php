@@ -802,4 +802,15 @@ $('#transfer-form').on('submit',function(e){
     }
 });
 </script>
+
+@if(!can_view_cost())
+<style>
+    #myTable th:nth-child(4), #myTable td:nth-child(4),
+    #myTable th:nth-child(5), #myTable td:nth-child(5),
+    #myTable th:nth-child(6), #myTable td:nth-child(6) { display: none; }
+</style>
+<script>
+    $(function () { $('input[name="edit_unit_cost"]').closest('.form-group').hide(); });
+</script>
+@endif
 @endpush

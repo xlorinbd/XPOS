@@ -423,7 +423,7 @@ class PayrollController extends Controller
                     $totalHours += $checkout->diffInMinutes($checkin) / 60;
                 }
             }
-            $employee->total_work_hours = number_format($totalHours, 2);
+            $employee->total_work_hours = amount_format($totalHours);
 
             // Total sales for sale agents
             if ($employee->is_sale_agent) {

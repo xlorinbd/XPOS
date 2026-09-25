@@ -109,9 +109,9 @@
                         @else
                         <td><div class="badge badge-success">{{__('db.Paid')}}</div></td>
                         @endif
-                        <td>{{number_format($sale->grand_total, 2)}}</td>
-                        <td>{{number_format($sale->paid_amount, 2)}}</td>
-                        <td>{{number_format($sale->grand_total - $sale->paid_amount, 2)}}</td>
+                        <td>{{amount_format($sale->grand_total)}}</td>
+                        <td>{{amount_format($sale->paid_amount)}}</td>
+                        <td>{{amount_format($sale->grand_total - $sale->paid_amount)}}</td>
                         <td><button type="button" class="btn btn-info btn-sm sale-view-btn" title="{{__('db.View')}}"><i class="dripicons-preview"></i></button></td>
                       </tr>
                       @endforeach

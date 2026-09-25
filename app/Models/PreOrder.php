@@ -13,6 +13,7 @@ class PreOrder extends Model
 
     protected $fillable = [
         'order_no',
+        'kind',
         'customer_id',
         'customer_name',
         'customer_phone',
@@ -30,6 +31,8 @@ class PreOrder extends Model
         'sale_id',
         'expected_delivery_date',
         'notes',
+        'border_price_reason',
+        'advance_refund_amount', 'advance_refund_account_id', 'advance_refund_note', 'advance_refunded_at', 'advance_refunded_by', 'cancel_reason',
     ];
 
     public function fromWarehouse()
@@ -65,6 +68,11 @@ class PreOrder extends Model
     public function serial()
     {
         return $this->belongsTo(ProductSerial::class, 'serial_number', 'serial_number');
+    }
+
+    public function getKindLabelAttribute(): string
+    {
+        return $this->kind === 'pre_booked' ? 'Pre-Booked' : 'Pre-Order';
     }
 
     public function scopeIncoming($query, $warehouseId)

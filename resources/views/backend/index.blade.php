@@ -14,8 +14,8 @@
 
     @php
         if ($general_setting->theme == 'default.css') {
-            $color = '#733686';
-            $color_rgba = 'rgba(115, 54, 134, 0.8)';
+            $color = '#111111';
+            $color_rgba = 'rgba(17, 17, 17, 0.8)';
         } elseif ($general_setting->theme == 'green.css') {
             $color = '#2ecc71';
             $color_rgba = 'rgba(46, 204, 113, 0.8)';
@@ -127,6 +127,7 @@
             </div>
         </div>
     </div>
+    @include('backend.dashboard._kg_overview')
     <!-- Counts Section -->
     <section class="dashboard-counts pt-0">
         <div class="container-fluid">
@@ -142,7 +143,7 @@
                                     </div>
                                     <div>
                                         <div class="count-number total_sale-data">
-                                            {{ number_format((float) $total_sale, $general_setting->decimal, '.', '') }}</div>
+                                            {{ money((float) $total_sale) }}</div>
                                         <div class="name">
                                             <strong style="color: #863636">{{ __('db.Total Sale') }}
                                                 <x-info title="Grand Total - Shipping Cost = Total Sale" type="info" />
@@ -154,11 +155,11 @@
                             <!-- Count item widget-->
                             <div class="col-sm-3">
                                 <div class="wrapper count-title">
-                                    <div class="icon"><i class="dripicons-graph-bar" style="color: #733686"></i></div>
+                                    <div class="icon"><i class="dripicons-graph-bar" style="color: #111111"></i></div>
                                     <div>
                                         <div class="count-number revenue-data">
-                                            {{ number_format((float) $revenue, $general_setting->decimal, '.', '') }}</div>
-                                        <div class="name"><strong style="color: #733686">{{ __('db.revenue') }}
+                                            {{ money((float) $revenue) }}</div>
+                                        <div class="name"><strong style="color: #111111">{{ __('db.revenue') }}
                                             <x-info title="(grand_total - shipping_cost) - Return +income  =  Revenue" type="info" />
                                             </strong></div>
                                     </div>
@@ -173,7 +174,7 @@
                                     </div>
                                     <div>
                                         <div class="count-number invoice-due-data">
-                                            {{ number_format((float) $invoice_due, $general_setting->decimal, '.', '') }}</div>
+                                            {{ money((float) $invoice_due) }}</div>
                                         <div class="name"><strong style="color: #0584a0">{{ __('db.Invoice Due') }}
                                                 <x-info title="Graned Total - Paid Amount = Invoice Due" type="info" />
                                             </strong></div>
@@ -186,7 +187,7 @@
                                     <div class="icon"><i class="dripicons-return" style="color: #ff8952"></i></div>
                                     <div>
                                         <div class="count-number return-data">
-                                            {{ number_format((float) $return, $general_setting->decimal, '.', '') }}</div>
+                                            {{ money((float) $return) }}</div>
                                         <div class="name"><strong style="color: #ff8952">{{ __('db.Sale Return') }}
                                                 <x-info title="Total Sale Return Amount" type="info" /></strong></div>
                                     </div>
@@ -199,7 +200,7 @@
                                     <div class="icon"><i class="dripicons-download" aria-hidden="true" style="color:#c60031; "></i></div>
                                     <div>
                                         <div class="count-number total_purchase-data">
-                                            {{ number_format((float) $purchase - $purchase_return, $general_setting->decimal, '.', '') }}
+                                            {{ money((float) $purchase - $purchase_return) }}
                                         </div>
                                         <div class="name"><strong
                                                 style="color: #c60031">{{ __('db.Total Purchase') }}</strong></div>
@@ -214,7 +215,7 @@
                                     <div class="icon"><i class="dripicons-warning" style="color: #bdbb39"></i></div>
                                     <div>
                                         <div class="count-number purchase_due-data">
-                                            {{ number_format((float) $purchase_due, $general_setting->decimal, '.', '') }}
+                                            {{ money((float) $purchase_due) }}
                                         </div>
                                         <div class="name"><strong
                                                 style="color: #bdbb39">{{ __('db.Purchase Due') }}</strong></div>
@@ -228,7 +229,7 @@
                                     <div class="icon"><i class="dripicons-return" style="color: #00c689"></i></div>
                                     <div>
                                         <div class="count-number purchase_return-data">
-                                            {{ number_format((float) $purchase_return, $general_setting->decimal, '.', '') }}
+                                            {{ money((float) $purchase_return) }}
                                         </div>
                                         <div class="name"><strong
                                                 style="color: #00c689">{{ __('db.Purchase Return') }}</strong></div>
@@ -241,8 +242,8 @@
                                     <div class="icon"><i class="dripicons-trophy" style="color: #297ff9"></i></div>
                                     <div>
                                         <div class="count-number profit-data">
-                                            {{ number_format((float) $profit, $general_setting->decimal, '.', '') }}</div>
-                                        <div class="name"><strong style="color: #297ff9">{{ __('db.profit') }} <x-info title="Revenue + Purchase Return - Product Cost - Expense" type="info" /></strong>
+                                            {{ money((float) $profit) }}</div>
+                                        <div class="name"><strong style="color: #297ff9">{{ __('db.profit') }} <x-info title="Revenue + Purchase Return - Product Cost - Expense - Damage loss" type="info" /></strong>
                                         </div>
                                     </div>
                                 </div>
@@ -734,35 +735,35 @@
             // [revenue, sale_return, profit, purchase_return, total_sale, invoice_due, total_purchase, purchase_due]
 
             $('.total_sale-data').hide();
-            $('.total_sale-data').html(parseFloat(data[4] ?? 0).toFixed({{ $general_setting->decimal }}));
+            $('.total_sale-data').html(kgMoney(parseFloat(data[4] ?? 0)));
             $('.total_sale-data').show(500);
 
             $('.revenue-data').hide();
-            $('.revenue-data').html(parseFloat(data[0] ?? 0).toFixed({{ $general_setting->decimal }}));
+            $('.revenue-data').html(kgMoney(parseFloat(data[0] ?? 0)));
             $('.revenue-data').show(500);
 
             $('.invoice-due-data').hide();
-            $('.invoice-due-data').html(parseFloat(data[5] ?? 0).toFixed({{ $general_setting->decimal }}));
+            $('.invoice-due-data').html(kgMoney(parseFloat(data[5] ?? 0)));
             $('.invoice-due-data').show(500);
 
             $('.return-data').hide();
-            $('.return-data').html(parseFloat(data[1] ?? 0).toFixed({{ $general_setting->decimal }}));
+            $('.return-data').html(kgMoney(parseFloat(data[1] ?? 0)));
             $('.return-data').show(500);
 
             $('.total_purchase-data').hide();
-            $('.total_purchase-data').html(parseFloat(data[6] ?? 0).toFixed({{ $general_setting->decimal }}));
+            $('.total_purchase-data').html(kgMoney(parseFloat(data[6] ?? 0)));
             $('.total_purchase-data').show(500);
 
             $('.purchase_due-data').hide();
-            $('.purchase_due-data').html(parseFloat(data[7] ?? 0).toFixed({{ $general_setting->decimal }}));
+            $('.purchase_due-data').html(kgMoney(parseFloat(data[7] ?? 0)));
             $('.purchase_due-data').show(500);
 
             $('.purchase_return-data').hide();
-            $('.purchase_return-data').html(parseFloat(data[3] ?? 0).toFixed({{ $general_setting->decimal }}));
+            $('.purchase_return-data').html(kgMoney(parseFloat(data[3] ?? 0)));
             $('.purchase_return-data').show(500);
 
             $('.profit-data').hide();
-            $('.profit-data').html(parseFloat(data[2] ?? 0).toFixed({{ $general_setting->decimal }}));
+            $('.profit-data').html(kgMoney(parseFloat(data[2] ?? 0)));
             $('.profit-data').show(500);
         }
     </script>

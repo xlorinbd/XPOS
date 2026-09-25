@@ -97,7 +97,7 @@ class CategoryController extends Controller
                 $total_cost = $category->product()->where('is_active', true)->sum(DB::raw('cost * qty'));
 
                 if(config('currency_position') == 'prefix')
-                    $nestedData['stock_worth'] = config('currency').' '.$total_price.' / '.config('currency').' '.$total_cost;
+                    $nestedData['stock_worth'] = config('currency').$total_price.' / '.config('currency').$total_cost;
                 else
                     $nestedData['stock_worth'] = $total_price.' '.config('currency').' / '.$total_cost.' '.config('currency');
 

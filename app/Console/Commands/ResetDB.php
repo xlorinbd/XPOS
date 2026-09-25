@@ -21,6 +21,11 @@ class ResetDB extends Command
 
     public function handle()
     {
+        // safety: this command drops every table. It only exists for the vendor demo site.
+        if (!env('ALLOW_DEMO_DB_RESET', false)) {
+            $this->error('reset:db is disabled (it would drop every table). Set ALLOW_DEMO_DB_RESET=true only on a throw-away demo.');
+            return 1;
+        }
         //clearing all the cached queries
         $this->cacheForget('biller_list');
         $this->cacheForget('brand_list');

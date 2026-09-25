@@ -56,6 +56,16 @@
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-group">
+                                            <label>Purchase Type *</label>
+                                            <select name="purchase_type" id="purchase_type" class="form-control">
+                                                <option value="local">Local (Bangladesh) &mdash; added to stock now</option>
+                                                <option value="foreign">Foreign &mdash; In-Transit until final entry</option>
+                                            </select>
+                                            <small class="text-muted" id="foreign-note" style="display:none">Foreign purchases do not add stock. Create a Shipment, receive it in the Bangladesh warehouse and complete the final entry (serial numbers and costs).</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
                                             <label>{{__('db.Purchase Status')}}</label>
                                             <select name="status" class="form-control">
                                                 <option value="1">{{__('db.Recieved')}}</option>
@@ -1359,4 +1369,18 @@
 </script>
 
 <script type="text/javascript" src="https://js.stripe.com/v3/"></script>
+
+<script>
+    $('#purchase_type').on('change', function () {
+        var foreign = $(this).val() === 'foreign';
+        $('#foreign-note').toggle(foreign);
+        var status = $('select[name="status"]');
+        if (foreign) {
+            status.val('4').trigger('change').prop('disabled', true);
+        } else {
+            status.prop('disabled', false);
+        }
+    });
+    $('form').on('submit', function () { $('select[name="status"]').prop('disabled', false); });
+</script>
 @endpush

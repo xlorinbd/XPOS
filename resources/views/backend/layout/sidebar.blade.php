@@ -12,6 +12,15 @@
                         @can('brand')
                             <li id="brand-menu"><a href="{{route('brand.index')}}">{{__('db.Brand')}}</a></li>
                         @endcan
+                        @can('products-add')
+                            <li id="lookup-processor-menu"><a href="{{route('lookups.index', 'processor')}}">Processor List</a></li>
+                            <li id="lookup-charger_model-menu"><a href="{{route('lookups.index', 'charger_model')}}">Charger Models</a></li>
+                            <li id="lookup-condition_tag-menu"><a href="{{route('lookups.index', 'condition_tag')}}">Condition Tags</a></li>
+                            <li id="lookup-damage_type-menu"><a href="{{route('lookups.index', 'damage_type')}}">Damage Types</a></li>
+                        @endcan
+                        @can('warehouse-stock-report')
+                            <li id="charger-need-menu"><a href="{{route('reports.chargerNeed')}}">Charger Need List</a></li>
+                        @endcan
                         @can('unit')
                             <li id="unit-menu"><a href="{{route('unit.index')}}">{{__('db.Unit')}}</a></li>
                         @endcan
@@ -47,6 +56,17 @@
                         @can('purchases-add')
                             <li id="purchase-create-menu"><a href="{{route('purchases.create')}}">{{__('db.Add Purchase')}}</a></li>
                         @endcan
+                        @can('purchases-index')
+                            <li id="shipment-list-menu"><a href="{{route('shipments.index')}}">Shipments</a></li>
+                            <li id="in-transit-menu"><a href="{{route('shipments.inTransit')}}">In-Transit Products</a></li>
+                        @endcan
+                        @can('purchases-add')
+                            <li id="lookup-cargo_company-menu"><a href="{{route('lookups.index', 'cargo_company')}}">Cargo Companies</a></li>
+                            <li id="lookup-hand_carry_person-menu"><a href="{{route('lookups.index', 'hand_carry_person')}}">Hand Carry Persons</a></li>
+                        @endcan
+                        @can('purchases-add')
+                            <li id="shipment-create-menu"><a href="{{route('shipments.create')}}">New Shipment</a></li>
+                        @endcan
                         @can('purchases-import')
                             <li id="purchase-import-menu"><a href="{{url('purchases/purchase_by_csv')}}">{{__('db.Import Purchase By CSV')}}</a></li>
                         @endcan
@@ -66,7 +86,7 @@
                             <li id="sale-list-menu"><a href="{{route('sales.index')}}">{{__('db.Sale List')}}</a></li>
                         @endcan
                         @can('sales-add')
-                            <li><a href="{{route('sale.pos')}}">POS</a></li>
+                            <li><a href="{{route('sale.pos')}}" target="_blank" rel="noopener">POS</a></li>
                             <li id="sale-create-menu"><a href="{{route('sales.create')}}">{{__('db.Add Sale')}}</a></li>
                         @endcan
                         @can('sales-import')
@@ -226,13 +246,19 @@
                             <li><a id="add-account" href="">{{__('db.Add Account')}}</a></li>
                         @endcan
                         @can('money-transfer')
-                            <li id="money-transfer-menu"><a href="{{route('money-transfers.index')}}">{{__('db.Money Transfer')}}</a></li>
+                            <li id="money-transfer-menu"><a href="{{route('money-transfers.index')}}">{{__('db.Money Transfer')}} @php $kgTc = kg_transfer_counts(); @endphp @if($kgTc['incoming'] + $kgTc['refunds'] > 0)<span class="badge badge-warning">{{ $kgTc['incoming'] + $kgTc['refunds'] }}</span>@endif</a></li>
+                        @endcan
+                        @can('account-index')
+                            <li id="payment-confirm-menu"><a href="{{route('payments.pending')}}">Gateway Payments @php $kgPp = kg_pending_gateway_count(); @endphp @if($kgPp > 0)<span class="badge badge-warning">{{ $kgPp }}</span>@endif</a></li>
                         @endcan
                         @can('balance-sheet')
                             <li id="balance-sheet-menu"><a href="{{route('accounts.balancesheet')}}">{{__('db.Balance Sheet')}}</a></li>
                         @endcan
                         @can('account-statement')
                             <li id="account-statement-menu"><a id="account-statement" href="">{{__('db.Account Statement')}}</a></li>
+                        @endcan
+                        @can('account-statement')
+                            <li id="daily-account-menu"><a href="{{route('report.daily_account')}}">Daily Account</a></li>
                         @endcan
                     </ul>
                 </li>
@@ -243,6 +269,11 @@
                     <a href="#hrm" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-user-group"></i><span>{{__('db.HRM')}}</span></a>
 
                     <ul id="hrm" class="collapse list-unstyled ">
+                        @can('payroll')
+                            <li id="salary-sheet-menu"><a href="{{route('salary.index')}}">Salary Sheet</a></li>
+                            <li id="staff-loan-menu"><a href="{{route('loan.manage')}}">Staff Loans</a></li>
+                        @endcan
+                        <li id="my-loan-menu"><a href="{{route('loan.mine')}}">My Loan Request</a></li>
                         @can('department')
                             <li id="dept-menu"><a href="{{route('departments.index')}}">{{__('db.Department')}}</a></li>
                         @endcan

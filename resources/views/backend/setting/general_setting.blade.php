@@ -24,7 +24,7 @@
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label>{{__('db.System Logo')}} * <x-info title="jpg, jpeg, png & gif" type="info" /></label>
-                                        <input type="file" name="site_logo" class="form-control" value="" accept="image/png, image/jpeg, image/gif"/>
+                                        <input type="file" id="site_logo" name="site_logo" class="form-control" value="" accept="image/png, image/jpeg, image/gif"/>
                                     </div>
                                     @if($errors->has('site_logo'))
                                    <span>
@@ -226,7 +226,7 @@
                                     <div class="form-group">
                                         <label>{{__('db.Theme')}} *</label>
                                         <div class="row ml-1">
-                                            <div class="col-md-3 theme-option" data-color="default.css" style="background: #7c5cc4; min-height: 40px; max-width: 50px;" title="Purple"></div>&nbsp;&nbsp;
+                                            <div class="col-md-3 theme-option" data-color="default.css" style="background: #111111; min-height: 40px; max-width: 50px;" title="Black &amp; White (default)"></div>&nbsp;&nbsp;
                                             <div class="col-md-3 theme-option" data-color="green.css" style="background: #1abc9c; min-height: 40px;max-width: 50px;" title="Green"></div>&nbsp;&nbsp;
                                             <div class="col-md-3 theme-option" data-color="blue.css" style="background: #3498db; min-height: 40px;max-width: 50px;" title="Blue"></div>&nbsp;&nbsp;
                                             <div class="col-md-3 theme-option" data-color="dark.css" style="background: #34495e; min-height: 40px;max-width: 50px;" title="Dark"></div>

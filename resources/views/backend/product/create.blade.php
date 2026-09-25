@@ -12,6 +12,7 @@
 .selected_items .remove_item, .selected_addons .remove_item {position: absolute;right: 20px;top:20px};
 .delVarOption{display: flex;flex-direction: column;align-items: center;}
 </style>
+
 @endpush
 @endif
 
@@ -92,7 +93,8 @@
                                                 <div class="col-md-3">
                                                     <div class="form-group">
                                                         <label>Processor</label>
-                                                        <input type="text" name="processor" class="form-control" placeholder="e.g. Core i7 12th Gen, Ryzen 7">
+                                                        <input type="text" name="processor" list="kg-processor-list" autocomplete="off" class="form-control" placeholder="e.g. Ryzen 5 7535HS (auto-formatted)">
+                                                        <datalist id="kg-processor-list">@foreach(\App\Models\Lookup::ofType('processor')->active()->orderBy('name')->pluck('name') as $kgProc)<option value="{{ $kgProc }}">@endforeach</datalist>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-3">
@@ -121,8 +123,31 @@
                                                 </div>
                                                 <div class="col-md-3">
                                                     <div class="form-group">
+                                                        <label>Remarks</label>
+                                                        <input type="text" name="remarks" value="" class="form-control" placeholder="Any extra note about the product">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
                                                         <label>Adapter Condition</label>
                                                         <input type="text" name="adapter_condition" class="form-control" placeholder="e.g. Original 65W Type-C">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label>Charger / Adapter model</label>
+                                                        @php $kgChargerModels = \App\Models\Lookup::ofType('charger_model')->active()->orderBy('name')->get(); @endphp
+                                                        <select name="adapter_model_id" class="form-control selectpicker" data-live-search="true">
+                                                            <option value="">None</option>
+                                                            @foreach($kgChargerModels as $cm)
+                                                            <option value="{{ $cm->id }}" >{{ $cm->name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                        <div class="checkbox mt-1">
+                                                            <input type="checkbox" name="is_adapter_item" id="is_adapter_item" value="1" >
+                                                            <label for="is_adapter_item">This product is a charger / adapter</label>
+                                                        </div>
+                                                        <small class="text-muted">Laptops: pick the charger they use. Charger products: pick their own model and tick the box.</small>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-3">
@@ -133,7 +158,7 @@
                                                             <option value="used">Used</option>
                                                             <option value="open_box">Open Box</option>
                                                             <option value="brand_new">Brand New (Intact)</option>
-                                                            <option value="box_opened">Box Opened (Brand New Just Box Open)</option>
+                                                            <option value="box_opened">Box Opend (Brand New Just Box Open)</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -2150,4 +2175,13 @@ $(document).on('click', '#create_unit', function (e) {
 });
 </script>
 
+<script>
+    $(document).on('blur', 'input[name="processor"]', function () {
+        var input = $(this), raw = $.trim(input.val());
+        if (!raw) { return; }
+        $.post('{{ route("products.normalizeProcessor") }}', { _token: $('meta[name="csrf-token"]').attr('content'), values: [raw] }, function (res) {
+            if (res[raw] && res[raw].normalized) { input.val(res[raw].normalized); }
+        });
+    });
+</script>
 @endpush

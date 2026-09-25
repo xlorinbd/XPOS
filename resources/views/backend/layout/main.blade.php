@@ -180,6 +180,10 @@
 
   <!-- Custom CSS from general settings -->
   {!! $general_setting->custom_css !!}
+  <script>window.KG_CURRENCY_SYMBOL = {!! json_encode(config('currency', '৳')) !!};</script>
+  <script src="{{ asset('js/kg-money.js') }}"></script>
+  <script src="{{ asset('js/kg-border.js') }}"></script>
+  <script src="{{ asset('js/kg-pay.js') }}"></script>
 </head>
 
 <body class="@if($theme == 'dark')dark-mode dripicons-brightness-low @endif  @if(Route::current() && Route::current()->getName() == 'sale.pos') pos-page @endif" onload="myFunction()">
@@ -307,7 +311,7 @@
 
           ?>
           @if($sale_add_permission_active)
-          <li class="nav-item"><a class="btn-pos btn-sm" href="{{route('sale.pos') }}"><i class="dripicons-shopping-bag"></i><span> POS</span></a></li>
+          <li class="nav-item"><a class="btn-pos btn-sm" href="{{route('sale.pos') }}" target="_blank" rel="noopener"><i class="dripicons-shopping-bag"></i><span> POS</span></a></li>
           <li class="nav-item"><a class="btn-pos btn-sm" href="{{route('warranty.check') }}" title="Verify Warranty & Guarantee"><i class="fa fa-shield"></i><span> Warranty</span></a></li>
           <li class="nav-item"><a class="btn-pos btn-sm" href="{{route('exchange.create') }}" title="Device Exchange / Swap"><i class="fa fa-exchange"></i><span> Exchange</span></a></li>
           <li class="nav-item"><a class="btn-pos btn-sm" href="{{route('pre_orders.index') }}" title="Inter-Branch Pre-Orders"><i class="fa fa-truck"></i><span> Pre-Orders</span></a></li>
@@ -316,6 +320,21 @@
           <li class="nav-item"><a class="btn-pos btn-sm" href="{{route('damages.index') }}" title="Damaged Inventory & Vendor RMA"><i class="fa fa-ban"></i><span> Damages</span></a></li>
           @endif
           <li class="nav-item"><a class="btn-pos btn-sm" href="{{url('doc') }}" target="_blank" title="User Manual & Documentation"><i class="fa fa-book"></i><span> Doc</span></a></li>
+          @endif
+          @php
+            $my_branches = \Auth::user()->role_id > 2 ? \Auth::user()->branches()->get() : collect();
+          @endphp
+          @if($my_branches->count() > 1)
+          <li class="nav-item">
+            <form action="{{ route('user.switchBranch') }}" method="POST" class="form-inline">
+              @csrf
+              <select name="warehouse_id" class="form-control form-control-sm" aria-label="Switch Branch" onchange="this.form.submit()">
+                @foreach($my_branches as $my_branch)
+                <option value="{{ $my_branch->id }}" {{ \Auth::user()->warehouse_id == $my_branch->id ? 'selected' : '' }}>{{ $my_branch->name }}</option>
+                @endforeach
+              </select>
+            </form>
+          </li>
           @endif
           <li class="nav-item d-none d-lg-block"><a id="switch-theme" data-toggle="tooltip" title="{{ __('Switch Theme') }}"><i class="dripicons-brightness-max"></i></a></li>
           @if(config('database.connections.saleprosaas_landlord'))
@@ -326,6 +345,8 @@
             @endif
             @php
             $total_notifications = $alert_product + $dso_alert_product_no + $expire_alert_products + Auth::user()->unreadNotifications->where('data.reminder_date', date('Y-m-d'))->count();
+            $kgUnread = kg_unread_notifications();
+            $total_notifications += $kgUnread->count();
             @endphp
 
             <li class="nav-item" id="notification-icon">
@@ -333,7 +354,7 @@
                 <a rel="nofollow" data-toggle="tooltip" title="{{ __('Notifications') }}" class="nav-link dropdown-item">
                     <i class="dripicons-bell"></i>
 
-                    @if($product_qty_alert_active && $total_notifications > 0)
+                    @if(($product_qty_alert_active && $total_notifications > 0) || $kgUnread->count() > 0)
                         <span class="badge badge-danger notification-number">{{ $total_notifications }}</span>
                     @endif
                 </a>
@@ -346,6 +367,16 @@
                         <span class="text-muted">No notifications available</span>
                     </li>
                     @else
+
+                        {{-- Khan Gadget notifications: open the exact record --}}
+                        @foreach($kgUnread as $kgN)
+                        <li class="notifications">
+                            <a href="{{ route('kg.notifications.go', $kgN->id) }}" class="btn btn-link">{{ $kgN->message }}</a>
+                        </li>
+                        @endforeach
+                        @if($kgUnread->count() > 0)
+                        <li class="notifications text-center"><a href="{{ route('kg.notifications') }}" class="btn btn-link">All notifications</a></li>
+                        @endif
 
                         {{-- Quantity Alert --}}
                         @if($alert_product > 0)
@@ -858,6 +889,7 @@
               <label>{{ __('name') }} *</label>
               <input type="text" name="name" required class="form-control">
             </div>
+            @include('backend.account._kg_fields', ['prefix' => 'add'])
             <div class="form-group">
               <label>{{ __('Initial Balance') }}</label>
               <input type="number" name="initial_balance" step="any" class="form-control">
@@ -1250,6 +1282,15 @@
 
   @endif
   @endif
+  <script>
+    $(document).on('change', '.kg-account-type', function () {
+        var scope = $(this).data('scope'), type = $(this).val();
+        var branchTypes = ['Branch Cash', 'Branch Bank', 'Branch Mobile Wallet', 'Warehouse Cash'];
+        $('.kg-branch-field[data-scope="' + scope + '"]').toggle(branchTypes.indexOf(type) !== -1);
+        $('.kg-owner-field[data-scope="' + scope + '"]').toggle(type === 'Staff Wallet');
+    });
+    $('.kg-account-type').trigger('change');
+</script>
   @stack('scripts')
 
   <script type="text/javascript">

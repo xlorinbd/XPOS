@@ -84,6 +84,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap" rel="stylesheet">
     @endif
 
+    <link rel="stylesheet" href="<?php echo asset('css/kg-pos.css') ?>?v=1">
     @stack('css')
 
     <!-- Custom CSS from general settings -->
@@ -102,6 +103,8 @@
     <script type="text/javascript" src="<?php echo asset('vendor/popper.js/umd/popper.min.js') ?>">
     </script>
     <script type="text/javascript" src="<?php echo asset('vendor/bootstrap/js/bootstrap.min.js') ?>"></script>
+    <script src="<?php echo asset('js/kg-money.js') ?>"></script>
+    <script src="<?php echo asset('js/kg-border.js') ?>"></script>
     <script type="text/javascript" src="<?php echo asset('vendor/bootstrap-toggle/js/bootstrap-toggle.min.js') ?>"></script>
     <script type="text/javascript" src="<?php echo asset('vendor/bootstrap/js/bootstrap-select.min.js') ?>"></script>
     <script type="text/javascript" src="<?php echo asset('vendor/keyboard/js/jquery.keyboard.js') ?>"></script>

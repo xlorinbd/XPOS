@@ -1,342 +1,70 @@
-@extends('backend.layout.main') @section('content')
+@extends('backend.layout.main')
+@section('content')
 
 <x-success-message key="message" />
 <x-error-message key="not_permitted" />
 
 <section>
     <div class="container-fluid">
-        <button class="btn btn-info" data-toggle="modal" data-target="#create-money-transfer-modal"><i class="dripicons-plus"></i> {{__('db.Add Money Transfer')}}</button>
+        <h4 class="mb-1">Cash Transfers</h4>
+        <p class="text-muted">Branch and Warehouse transfers wait for the receiving side to accept. Everything else completes at once. Nothing is ever deleted; a wrong transfer is corrected by rejecting or cancelling it.</p>
+        @can('money-transfer')
+        <a href="{{ route('money-transfers.create') }}" class="btn btn-info"><i class="dripicons-plus"></i> New Transfer</a>
+        @endcan
+        <div class="mt-3">
+            <a href="{{ route('money-transfers.index') }}" class="btn btn-sm {{ $tab === 'all' ? 'btn-dark' : 'btn-outline-dark' }}">All</a>
+            <a href="{{ route('money-transfers.index', ['tab' => 'incoming']) }}" class="btn btn-sm {{ $tab === 'incoming' ? 'btn-dark' : 'btn-outline-dark' }}">
+                Waiting for my acceptance @if($counts['incoming'])<span class="badge badge-warning">{{ $counts['incoming'] }}</span>@endif
+            </a>
+            <a href="{{ route('money-transfers.index', ['tab' => 'refunds']) }}" class="btn btn-sm {{ $tab === 'refunds' ? 'btn-dark' : 'btn-outline-dark' }}">
+                Refunds to accept @if($counts['refunds'])<span class="badge badge-warning">{{ $counts['refunds'] }}</span>@endif
+            </a>
+            <a href="{{ route('money-transfers.index', ['tab' => 'sent']) }}" class="btn btn-sm {{ $tab === 'sent' ? 'btn-dark' : 'btn-outline-dark' }}">Sent</a>
+        </div>
     </div>
-    <div class="table-responsive">
+
+    <div class="table-responsive mt-3">
         <table id="money-transfer-table" class="table">
             <thead>
                 <tr>
-                    <th class="not-exported"></th>
-                    <th>{{__('db.date')}}</th>
-                    <th>{{__('db.Reference No')}}</th>
-                    <th>{{__('db.From Account')}}</th>
-                    <th>{{__('db.To Account')}}</th>
-                    <th>{{__('db.Amount')}}</th>
-                    <th class="not-exported">{{__('db.action')}}</th>
+                    <th>Date</th>
+                    <th>Reference</th>
+                    <th>Type</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th class="text-right">Amount</th>
+                    <th class="text-right">Accepted</th>
+                    <th>Status</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($lims_money_transfer_all as $key=>$money_transfer)
-                <tr data-id="{{$money_transfer->id}}">
-                    <td>{{$key}}</td>
-                    <td>{{date($general_setting->date_format, strtotime($money_transfer->created_at->toDateString())) . ' '. $money_transfer->created_at->toTimeString() }}</td>
-                    <td>{{ $money_transfer->reference_no }}</td>
-                    <td>{{ $money_transfer->fromAccount->name }}</td>
-                    <td>{{ $money_transfer->toAccount->name }}</td>
-                    <td>{{ number_format((float)$money_transfer->amount, $general_setting->decimal, '.', '')}}</td>
-                    <td>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{__('db.action')}}
-                                <span class="caret"></span>
-                                <span class="sr-only">Toggle Dropdown</span>
-                            </button>
-                            <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">
-                                <li><button type="button" id="edit-btn" data-id="{{$money_transfer->id}}" data-created_at="{{date(config('date_format'), strtotime($money_transfer->created_at->toDateString()))}}" data-from_id="{{$money_transfer->from_account_id}}" data-to_id="{{$money_transfer->to_account_id}}" data-amount="{{$money_transfer->amount}}"  class=" btn btn-link" data-toggle="modal" data-target="#edit-money-transfer-modal"><i class="dripicons-document-edit"></i> {{__('db.edit')}}</button></li>
-                                <li class="divider"></li>
-                                {{ Form::open(['route' => ['money-transfers.destroy', $money_transfer->id], 'method' => 'DELETE'] ) }}
-                                <li>
-                                    <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="dripicons-trash"></i> {{__('db.delete')}}</button>
-                                </li>
-                                {{ Form::close() }}
-                            </ul>
-                        </div>
-                    </td>
+                @foreach($transfers as $t)
+                @php
+                    $cls = ['pending' => 'warning', 'accepted' => 'success', 'rejected' => 'danger', 'completed' => 'success', 'recorded' => 'info', 'cancelled' => 'secondary'][$t->status] ?? 'secondary';
+                    if ($t->refund_status === 'pending') { $cls = 'warning'; }
+                @endphp
+                <tr>
+                    <td data-order="{{ $t->created_at }}">{{ $t->created_at->format('d/m/Y h:i A') }}</td>
+                    <td><a href="{{ route('money-transfers.show', $t->id) }}"><strong>{{ $t->reference_no }}</strong></a></td>
+                    <td>{{ $t->type_label }}</td>
+                    <td>{{ $t->fromAccount->name ?? '-' }}</td>
+                    <td>{{ $t->toAccount->name ?? ($t->third_party_name ?: ($t->type_code === 'staff_to_expense' ? 'Expense' : '-')) }}</td>
+                    <td class="text-right">{{ money($t->amount) }}</td>
+                    <td class="text-right">{{ $t->status === 'pending' ? '-' : money($t->accepted_amount) }}</td>
+                    <td><span class="badge badge-{{ $cls }}">{{ $t->status_label }}</span></td>
                 </tr>
                 @endforeach
             </tbody>
-            <tfoot class="tfoot active">
-                <th></th>
-                <th>{{__('db.Total')}}</th>
-                <th></th>
-                <th></th>
-                <th></th>
-                <th></th>
-                <th></th>
-            </tfoot>
         </table>
     </div>
 </section>
-
-<!-- Create Money Transfer modal -->
-<div id="create-money-transfer-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
-    <div role="document" class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 id="exampleModalLabel" class="modal-title">{{__('db.Add Money Transfer')}}</h5>
-                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
-            </div>
-            <div class="modal-body">
-              <p class="italic"><small>{{__('db.The field labels marked with * are required input fields')}}.</small></p>
-                {!! Form::open(['route' => 'money-transfers.store', 'method' => 'post']) !!}
-                  <div class="row">
-                      <div class="col-md-6 form-group">
-                          <label> {{__('db.From Account')}} *</label>
-                          <select class="form-control selectpicker" name="from_account_id" data-live-search="true" data-live-search-style="begins" title="Select from account..." required>
-                          @foreach($lims_account_list as $account)
-                              <option value="{{$account->id}}">{{$account->name}} [{{$account->account_no}}]</option>
-                          @endforeach
-                          </select>
-                      </div>
-                      <div class="col-md-6 form-group">
-                          <label> {{__('db.To Account')}} *</label>
-                          <select class="form-control selectpicker" name="to_account_id" data-live-search="true" data-live-search-style="begins" title="Select to account..." required>
-                          @foreach($lims_account_list as $account)
-                              <option value="{{$account->id}}">{{$account->name}} [{{$account->account_no}}]</option>
-                          @endforeach
-                          </select>
-                      </div>
-
-                      <div class="col-md-6 form-group">
-                          <label>{{__('db.Amount')}} *</label>
-                          <input type="number" name="amount" class="form-control" step="any" required>
-                      </div>
-                  </div>
-                  <div class="form-group">
-                      <button type="submit" class="btn btn-primary">{{__('db.submit')}}</button>
-                  </div>
-                {{ Form::close() }}
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Money Transfer modal -->
-<div id="edit-money-transfer-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
-    <div role="document" class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 id="exampleModalLabel" class="modal-title">{{__('db.Update Money Transfer')}}</h5>
-                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
-            </div>
-            <div class="modal-body">
-                <p class="italic"><small>{{__('db.The field labels marked with * are required input fields')}}.</small></p>
-                {!! Form::open(['route' => ['money-transfers.update', 1], 'method' => 'put']) !!}
-                  <div class="row">
-                        <input type="hidden" name="id">
-                        <div class="col-md-6 form-group">
-                            <label>{{__('db.date')}}</label>
-                            <input type="text" name="created_at" class="form-control date" placeholder="{{__('db.Choose date')}}"/>
-                        </div>
-
-                      <div class="col-md-6 form-group">
-                          <label> {{__('db.From Account')}} *</label>
-                          <select class="form-control selectpicker" name="from_account_id" data-live-search="true" data-live-search-style="begins" title="Select from account..." required>
-                          @foreach($lims_account_list as $account)
-                              <option value="{{$account->id}}">{{$account->name}} [{{$account->account_no}}]</option>
-                          @endforeach
-                          </select>
-                      </div>
-                      <div class="col-md-6 form-group">
-                          <label> {{__('db.To Account')}} *</label>
-                          <select class="form-control selectpicker" name="to_account_id" data-live-search="true" data-live-search-style="begins" title="Select to account..." required>
-                          @foreach($lims_account_list as $account)
-                              <option value="{{$account->id}}">{{$account->name}} [{{$account->account_no}}]</option>
-                          @endforeach
-                          </select>
-                      </div>
-
-                      <div class="col-md-6 form-group">
-                          <label>{{__('db.Amount')}} *</label>
-                          <input type="number" name="amount" class="form-control" step="any" required>
-                      </div>
-                  </div>
-                  <div class="form-group">
-                      <button type="submit" class="btn btn-primary">{{__('db.submit')}}</button>
-                  </div>
-                {{ Form::close() }}
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
 @endsection
 
 @push('scripts')
 <script type="text/javascript">
-
     $("ul#account").siblings('a').attr('aria-expanded','true');
     $("ul#account").addClass("show");
     $("ul#account #money-transfer-menu").addClass("active");
-
-    var money_transfer_id = [];
-    var user_verified = <?php echo json_encode(env('USER_VERIFIED')) ?>;
-
-
-    $.ajaxSetup({
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        }
-    });
-
-    $(document).on('click', '#edit-btn', function() {
-        $("#edit-money-transfer-modal input[name='created_at']").val($(this).data('created_at'));
-        $("#edit-money-transfer-modal select[name='from_account_id']").val($(this).data('from_id'));
-        $("#edit-money-transfer-modal select[name='to_account_id']").val($(this).data('to_id'));
-        $("#edit-money-transfer-modal input[name='id']").val($(this).data('id'));
-        $("#edit-money-transfer-modal input[name='amount']").val($(this).data('amount'));
-        $('.selectpicker').selectpicker('refresh');
-    });
-
-    function confirmDelete() {
-        if (confirm("Are you sure want to delete?")) {
-            return true;
-        }
-        return false;
-    }
-
-    $('#money-transfer-table').DataTable( {
-        "order": [],
-        'language': {
-            'lengthMenu': '_MENU_ {{__("db.records per page")}}',
-             "info":      '<small>{{__("db.Showing")}} _START_ - _END_ (_TOTAL_)</small>',
-            "search":  '{{__("db.Search")}}',
-            'paginate': {
-                    'previous': '<i class="dripicons-chevron-left"></i>',
-                    'next': '<i class="dripicons-chevron-right"></i>'
-            }
-        },
-        'columnDefs': [
-            {
-                "orderable": false,
-                'targets': [0, 6]
-            },
-            {
-                'render': function(data, type, row, meta){
-                    if(type === 'display'){
-                        data = '<div class="checkbox"><input type="checkbox" class="dt-checkboxes"><label></label></div>';
-                    }
-
-                   return data;
-                },
-                'checkboxes': {
-                   'selectRow': true,
-                   'selectAllRender': '<div class="checkbox"><input type="checkbox" class="dt-checkboxes"><label></label></div>'
-                },
-                'targets': [0]
-            }
-        ],
-        'select': { style: 'multi',  selector: 'td:first-child'},
-        'lengthMenu': [[10, 25, 50, -1], [10, 25, 50, "All"]],
-        dom: '<"row"lfB>rtip',
-        buttons: [
-            {
-                extend: 'pdf',
-                text: '<i title="export to pdf" class="fa fa-file-pdf-o"></i>',
-                exportOptions: {
-                    columns: ':visible:Not(.not-exported)',
-                    rows: ':visible'
-                },
-                action: function(e, dt, button, config) {
-                    datatable_sum(dt, true);
-                    $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, button, config);
-                    datatable_sum(dt, false);
-                },
-                footer:true
-            },
-            {
-                extend: 'excel',
-                text: '<i title="export to excel" class="dripicons-document-new"></i>',
-                exportOptions: {
-                    columns: ':visible:Not(.not-exported)',
-                    rows: ':visible'
-                },
-                action: function(e, dt, button, config) {
-                    datatable_sum(dt, true);
-                    $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, button, config);
-                    datatable_sum(dt, false);
-                },
-                footer:true
-            },
-            {
-                extend: 'csv',
-                text: '<i title="export to csv" class="fa fa-file-text-o"></i>',
-                exportOptions: {
-                    columns: ':visible:Not(.not-exported)',
-                    rows: ':visible'
-                },
-                action: function(e, dt, button, config) {
-                    datatable_sum(dt, true);
-                    $.fn.dataTable.ext.buttons.csvHtml5.action.call(this, e, dt, button, config);
-                    datatable_sum(dt, false);
-                },
-                footer:true
-            },
-            {
-                extend: 'print',
-                text: '<i title="print" class="fa fa-print"></i>',
-                exportOptions: {
-                    columns: ':visible:Not(.not-exported)',
-                    rows: ':visible'
-                },
-                action: function(e, dt, button, config) {
-                    datatable_sum(dt, true);
-                    $.fn.dataTable.ext.buttons.print.action.call(this, e, dt, button, config);
-                    datatable_sum(dt, false);
-                },
-                footer:true
-            },
-            {
-                text: '<i title="delete" class="dripicons-cross"></i>',
-                className: 'buttons-delete',
-                action: function ( e, dt, node, config ) {
-                    if(user_verified == '1') {
-                        money_transfer_id.length = 0;
-                        $(':checkbox:checked').each(function(i){
-                            if(i){
-                                money_transfer_id[i-1] = $(this).closest('tr').data('id');
-                            }
-                        });
-                        if(money_transfer_id.length && confirm("Are you sure want to delete?")) {
-                            $.ajax({
-                                type:'POST',
-                                url:'money_transfers/deletebyselection',
-                                data:{
-                                    money_transferIdArray: money_transfer_id
-                                },
-                                success:function(data){
-                                    alert(data);
-                                }
-                            });
-                            dt.rows({ page: 'current', selected: true }).remove().draw(false);
-                        }
-                        else if(!money_transfer_id.length)
-                            alert('No money_transfer is selected!');
-                    }
-                    else
-                        alert('This feature is disable for demo!');
-                }
-            },
-            {
-                extend: 'colvis',
-                text: '<i title="column visibility" class="fa fa-eye"></i>',
-                columns: ':gt(0)'
-            },
-        ],
-        drawCallback: function () {
-            var api = this.api();
-            datatable_sum(api, false);
-        }
-    } );
-
-    function datatable_sum(dt_selector, is_calling_first) {
-        if (dt_selector.rows( '.selected' ).any() && is_calling_first) {
-            var rows = dt_selector.rows( '.selected' ).indexes();
-            $( dt_selector.column( 5 ).footer() ).html(dt_selector.cells( rows, 5, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
-        }
-        else {
-            $( dt_selector.column( 5 ).footer() ).html(dt_selector.cells( rows, 5, { page: 'current' } ).data().sum().toFixed({{$general_setting->decimal}}));
-        }
-    }
-
-    /*if(all_permission.indexOf("money_transfers-delete") == -1)
-        $('.buttons-delete').addClass('d-none');*/
-
+    $('#money-transfer-table').DataTable({ order: [[0, 'desc']], pageLength: 25 });
 </script>
 @endpush

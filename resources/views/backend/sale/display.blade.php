@@ -9,7 +9,7 @@
     svg {
         width: 20px;
         height: 20px;
-        stroke: #7c5cc4;
+        stroke: #111111;
     }
 </style>
 @endpush

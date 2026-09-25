@@ -1,0 +1,39 @@
+/* Khan Gadget POS: plain black and white. Colour is kept only for status (cancel, warnings, alerts). */
+
+/* action buttons */
+.btn-custom,
+#brand-filter, #featured-filter, #category-filter,
+.btn-info, .btn-warning, .btn-primary {
+    background-color: #111 !important;
+    border-color: #111 !important;
+    color: #fff !important;
+}
+.btn-custom:hover, .btn-info:hover, .btn-warning:hover, .btn-primary:hover {
+    background-color: #333 !important;
+    border-color: #333 !important;
+}
+.btn-custom[disabled], .btn-custom:disabled {
+    background-color: #d9d9d9 !important;
+    border-color: #d9d9d9 !important;
+    color: #777 !important;
+}
+#cancel-btn, #cheque-btn, .btn-danger { background-color: #c62828 !important; border-color: #c62828 !important; color: #fff !important; }
+#cancel-btn[disabled], #cheque-btn[disabled] { background-color: #d9d9d9 !important; border-color: #d9d9d9 !important; color: #777 !important; }
+#cheque-btn { background-color: #111 !important; border-color: #111 !important; }
+
+/* light blue / lavender bars */
+th.col-sm-5, th.col-sm-2, th.col-sm-3, th.col-sm-4, .payment-amount {
+    background-color: #f0f0f0 !important;
+    color: #111 !important;
+}
+.bg-info { background-color: #111 !important; color: #fff !important; }
+.payment-amount, #grand-total, .grand-total { color: #111 !important; }
+.btn-link, .btn-link svg, .btn-link path { color: #111 !important; }
+.alert-primary, #closeButtonUpgrade { display: none !important; }
+
+/* selected / hover states */
+#product-results-container .product-img:hover { background-color: #111 !important; color: #fff !important; }
+.product-grid > div { border-color: #e0e0e0 !important; }
+
+/* amounts read better with the taka sign */
+#grand-total::before { content: "\09F3\00a0"; }

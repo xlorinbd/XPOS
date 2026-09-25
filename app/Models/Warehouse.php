@@ -8,7 +8,13 @@ class Warehouse extends Model
 {
     protected $fillable =[
 
-        "name", "phone", "email", "address", "is_active"
+        "name", "type", "phone", "email", "address", "is_active"
+    ];
+
+    public const TYPES = [
+        'warehouse' => 'Warehouse',
+        'branch' => 'Branch',
+        'service_center' => 'Service Center',
     ];
 
     public function product()

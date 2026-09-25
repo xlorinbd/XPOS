@@ -64,7 +64,7 @@
                         @endif
                         <td>{{ $delivery->address }}</td>
                         <td>{{implode(",", $product_names)}}</td>
-                        <td>{{number_format($customer_sale[0]->grand_total, 2)}}</td>
+                        <td>{{amount_format($customer_sale[0]->grand_total)}}</td>
                         @if($delivery->status == 1)
                         <td><div class="badge badge-info">{{$status}}</div></td>
                         @elseif($delivery->status == 2)

@@ -126,7 +126,7 @@
                                                                 <td>
                                                                     <select name="return_action[]" class="form-control form-control-sm return-action-select" style="font-size:12px;">
                                                                         <option value="restock" selected>Restock to Inventory (Good Condition)</option>
-                                                                        <option value="damaged">Defective / Damaged (Send to RMA)</option>
+                                                                        <option value="damaged">Defective / Damaged (Send to Service)</option>
                                                                     </select>
                                                                 </td>
 
@@ -237,6 +237,21 @@
                                         </div>
                                     </div>
                                     <div class="row mt-3">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Refund paid from account</label>
+                                                @php
+                                                    $kgRefundDefault = \App\Models\Account::defaultFor('cash', $lims_sale_data->warehouse_id);
+                                                @endphp
+                                                <select name="account_id" class="form-control">
+                                                    @foreach (\App\Models\Account::where('is_active', true)->orderBy('name')->get() as $kgAcc)
+                                                        @if ($kgAcc->usableAt($lims_sale_data->warehouse_id))
+                                                            <option value="{{ $kgAcc->id }}" @if ($kgRefundDefault && $kgRefundDefault->id == $kgAcc->id) selected @endif>{{ $kgAcc->name }}</option>
+                                                        @endif
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
                                         <div class="col-md-4">
                                             <div class="form-group">
                                                 <label>{{ __('db.Order Tax') }}</label>

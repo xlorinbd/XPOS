@@ -16,6 +16,7 @@ class Kernel extends ConsoleKernel
         Commands\AutoPurchase::class,
         Commands\DsoAlert::class,
         Commands\ResetDB::class,
+        Commands\DailyAccountPdf::class,
     ];
 
     /**
@@ -28,9 +29,10 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('purchase:auto')->everyFiveMinutes();
         $schedule->command('dsoalert:find')->dailyAt('00:00');
-        $schedule->command('reset:db')->everyMinute();
-        // Testing Purpose
-        $schedule->command('quote:daily')->everyMinute();
+        // Day-end: save every branch's Daily Account PDF and tell the accountants
+        $schedule->command('kg:daily-account')->dailyAt('23:55');
+        // NOTE: the demo commands reset:db (drops every table) and quote:daily (mails every user) were
+        // scheduled here in the original package. They must never run on a real shop, so they are not scheduled.
     }
 
     /**

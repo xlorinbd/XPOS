@@ -105,28 +105,28 @@
     .loader{display: block;max-width: 100% !important; min-width: 100% !important;text-align: center;vertical-align: middle;width: 100% !important; margin-top: 50px}
     .product-grid .loader{margin-top: 25%;}
 
-    .loader svg path,.loader svg rect{fill: #7c5cc4;}
+    .loader svg path,.loader svg rect{fill: #111111;}
     nav.navbar a.menu-btn {display: flex;justify-content: center;align-items: center;}
     nav.navbar a {align-items: center;display: flex;}
     .right-sidebar li a svg{margin-right: 10px}
-    .nav-menu svg {width: 20px;height: 20px; stroke: #7c5cc4;vertical-align: middle}
+    .nav-menu svg {width: 20px;height: 20px; stroke: #111111;vertical-align: middle}
     .btn svg {vertical-align: middle; width: 16px}
     button.close svg {vertical-align: middle; width: 26px}
     .bootstrap-select.btn-group > .dropdown-toggle{height: 37px}
 
     .dropdown-toggle-no-arrow::after{display:none!important}
     .calculator{background-color:#fff;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,.2);width:240px}
-    .calculator .display{width:100%;height:50px;background-color:#f5f5f5;border:2px solid #7c5cc4;font-size:1.5em;text-align:right;padding:0 10px;margin-bottom:10px;border-radius:5px}
+    .calculator .display{width:100%;height:50px;background-color:#f5f5f5;border:2px solid #111111;font-size:1.5em;text-align:right;padding:0 10px;margin-bottom:10px;border-radius:5px}
     .calculator .buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
     .calculator .btn{height:40px;font-size:1em;border:none;border-radius:5px;cursor:pointer;transition:background-color .2s}
     .calculator .btn.number{background-color:#fff;color:#000;border:1px solid #ddd}
     .calculator .btn.operator{background-color:#f0f0f0;color:#000}
     .calculator .btn.action.ac{background-color:#d63031;color:#fff}
     .calculator .btn.action.ce{background-color:#e28d02;color:#fff}
-    .calculator .btn.equals{background-color:#7c5cc4;color:#fff;grid-column:span 2}
+    .calculator .btn.equals{background-color:#111111;color:#fff;grid-column:span 2}
     #product-results-container{background:#f5f6f7;position: absolute;overflow: hidden;max-height: 300px;overflow-y: auto;top:40px;width:100%;z-index:999999}
-    #product-results-container .product-img{border-radius: 3px; color: #7c5cc4;font-size:13px;padding-top:7px;padding-bottom:7px;text-align:left}
-    #product-results-container .product-img:hover{background-color: #7c5cc4;color: #FFF}
+    #product-results-container .product-img{border-radius: 3px; color: #111111;font-size:13px;padding-top:7px;padding-bottom:7px;text-align:left}
+    #product-results-container .product-img:hover{background-color: #111111;color: #FFF}
 </style>
 @endpush
 @section('content')
@@ -148,10 +148,14 @@
                 <!-- navbar-->
                 <header>
                     <nav class="navbar">
+                        <div class="kg-pos-brand d-flex align-items-center mr-2">
+                            @if(!empty($general_setting->site_logo))<img src="{{ url('logo', $general_setting->site_logo) }}" alt="" style="height:26px;width:auto">@endif
+                            <span class="ml-2 font-weight-bold" style="font-size:13px;white-space:nowrap">{{ optional(\App\Models\Warehouse::find(auth()->user()->warehouse_id))->name }}</span>
+                        </div>
                         <div class="dropdown">
                             <a class="btn menu-btn dropdown-toggle-no-arrow" type="button" data-toggle="dropdown" aria-expanded="false" role="button"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg></a>
                             <div class="dropdown-menu">
-                                <a class="dropdown-item" target="_blank"  href="{{url('/dashboard')}}">{{__('db.dashboard')}}</a>
+                                <a class="dropdown-item" href="{{url('/dashboard')}}">Return to Dashboard</a>
                                 <?php
                                 $product_permission_active = $role_has_permissions_list->where('name', 'products-index')->first();
                                 ?>
@@ -274,13 +278,19 @@
                                 <a href="" id="today-profit-btn" data-toggle="tooltip" title="{{__('db.Today Profit')}}"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg></a>
                             </li>
                             @endif
-                            @if(($alert_product + count(\Auth::user()->unreadNotifications)) > 0)
+                            @php $kgUnread = kg_unread_notifications(); @endphp
+                            @if(($alert_product + count(\Auth::user()->unreadNotifications) + $kgUnread->count()) > 0)
                             <li class="nav-item d-none d-lg-block" id="notification-icon">
-                                <a rel="nofollow" data-toggle="tooltip" title="{{__('Notifications')}}" class="nav-link dropdown-item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" /></svg><span class="badge badge-danger notification-number">{{$alert_product + count(\Auth::user()->unreadNotifications)}}</span>
+                                <a rel="nofollow" data-toggle="tooltip" title="{{__('Notifications')}}" class="nav-link dropdown-item"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" /></svg><span class="badge badge-danger notification-number">{{$alert_product + count(\Auth::user()->unreadNotifications) + $kgUnread->count()}}</span>
                                     <span class="caret"></span>
                                     <span class="sr-only">Toggle Dropdown</span>
                                 </a>
                                 <ul class="right-sidebar" user="menu">
+                                    @foreach($kgUnread as $kgN)
+                                    <li class="notifications">
+                                        <a href="{{ route('kg.notifications.go', $kgN->id) }}" target="_blank" class="btn btn-link">{{ $kgN->message }}</a>
+                                    </li>
+                                    @endforeach
                                     <li class="notifications">
                                         <a href="{{route('report.qtyAlert')}}" class="btn btn-link">{{$alert_product}} product exceeds alert quantity</a>
                                     </li>
@@ -770,7 +780,7 @@
                     <div class="col-12 pl-0 pr-0">
                         <div class="search-box form-group mb-2">
                             <div class="input-group pos">
-                                <input style="border: 1px solid #7c5cc4;" type="text" name="product_code_name" id="product-search-input" placeholder="Scan/Search product by name/code/IMEI" class="form-control" autofocus />
+                                <input style="border: 1px solid #111111;" type="text" name="product_code_name" id="product-search-input" placeholder="Scan/Search product by name/code/IMEI" class="form-control" autofocus />
                                 <button type="button" class="btn btn-primary" onclick="barcode()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upc" viewBox="0 0 16 16"><path d="M3 4.5a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0zm2 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 1 0v7a.5.5 0 0 1-1 0z"/></svg></button>
                             </div>
                             <div id="product-results-container">
@@ -839,6 +849,7 @@
                                 <input type="hidden" name="coupon_discount" value="0"/>
 
                                 <input type="hidden" name="pos" value="1" />
+                                <input type="hidden" name="client_token" id="kg-client-token" value="" />
 
                                 @if(isset($lims_sale_data) && !empty($lims_sale_data))
                                 <input type="hidden" name="sale_id" value="{{$lims_sale_data->id}}" />
@@ -983,6 +994,13 @@
                 </div>
 
                 <!-- payment modal -->
+                @php
+                    $kgPayAccountOptions = '<option value="">Auto</option>';
+                    foreach ($lims_account_list as $kgAcc) {
+                        if ($kgAcc->type === 'Staff Wallet') { continue; }
+                        $kgPayAccountOptions .= '<option value="' . $kgAcc->id . '" data-type="' . e($kgAcc->type) . '" data-warehouse="' . e($kgAcc->warehouse_id) . '">' . e($kgAcc->name) . '</option>';
+                    }
+                @endphp
                 <div id="add-payment" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
                     <div role="document" class="modal-dialog">
                         <div class="modal-content">
@@ -1034,6 +1052,10 @@
                                             <div class="col-md-3 col-6 mt-1 cash-received-container">
                                                 <label id="received-paying">{{__('db.Cash Received')}} <x-info title="Cash handed over to you. example: sale amount is 300. customer gives you 500. cash received: 500 " type="info" /> *</label>
                                                 <input type="text" name="paying_amount[]" class="form-control paying_amount numkey" required step="any">
+                                            </div>
+                                            <div class="col-md-3 col-12 mt-1 kg-pay-account-container">
+                                                <label>{{ __('Account') }}</label>
+                                                <select name="pay_account_id[]" class="form-control kg-pay-account">{!! $kgPayAccountOptions !!}</select>
                                             </div>
                                         </div>
                                         <div class="row add-more-row mt-2">
@@ -1255,6 +1277,15 @@
                                         <div class="col-md-4 form-group">
                                             <label>{{__('db.Unit Price')}}</label>
                                             <input type="text" name="edit_unit_price" class="form-control numkey" step="any">
+                                        </div>
+                                        <div class="col-md-4 form-group">
+                                            <label>Warranty</label>
+                                            <select name="edit_warranty" class="form-control">
+                                                <option value="0">No warranty</option>
+                                                @foreach([1, 2, 3, 6, 12, 18, 24, 36] as $kgM)
+                                                <option value="{{ $kgM }}">{{ $kgM }} {{ $kgM == 1 ? 'month' : 'months' }}</option>
+                                                @endforeach
+                                            </select>
                                         </div>
                                         <?php
                                         $tax_name_all[] = 'No Tax';
@@ -2771,6 +2802,7 @@
         cols += '<input type="hidden" class="sale-unit-operation-value" value="'+data[8]+'" />';
         cols += '<input type="hidden" class="subtotal-value" name="subtotal[]" />';
         cols += '<input type="hidden" class="last-border-price" name="last_border_price[]" value="' + (data[24] || 0) + '"/>';
+        cols += '<input type="hidden" class="warranty-months" name="warranty_months[]" value="' + (data[29] || 0) + '"/>';
         if(activeSerial)
             cols += '<input type="hidden" class="imei-number" name="imei_number[]" value="'+activeSerial+'" />';
         else
@@ -3125,6 +3157,95 @@
             }
         });
     }
+    // ---- minimal offline support: a checkout that cannot reach the server is kept here and sent again later ----
+    function kgNewToken() {
+        return 'kg' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+    }
+    function kgOfflineList() {
+        try { return JSON.parse(localStorage.getItem('kg_offline_sales') || '[]'); } catch (e) { return []; }
+    }
+    function kgOfflineSave(list) {
+        try { localStorage.setItem('kg_offline_sales', JSON.stringify(list)); } catch (e) {}
+        kgOfflineBadge();
+    }
+    function kgOfflineQueue(serialized) {
+        var list = kgOfflineList();
+        list.push({ data: serialized, at: Date.now(), error: null });
+        kgOfflineSave(list);
+        alert('No internet connection. This sale is saved on this computer and will be sent automatically when the connection is back. Please do not clear the browser data.');
+    }
+    function kgOfflineBadge() {
+        var n = kgOfflineList().length;
+        var $b = $('#kg-offline-badge');
+        if (!$b.length) {
+            $b = $('<div id="kg-offline-badge" style="position:fixed;left:12px;bottom:12px;z-index:5000;background:#c62828;color:#fff;padding:6px 12px;border-radius:4px;font-size:13px;cursor:pointer;display:none"></div>').appendTo('body');
+            $b.on('click', function () {
+                var l = kgOfflineList();
+                var msg = l.map(function (x, i) { return (i + 1) + '. ' + new Date(x.at).toLocaleString() + (x.error ? ' - NOT ACCEPTED: ' + x.error : ' - waiting'); }).join('\n');
+                if (confirm(msg + '\n\nTry to send them now? (Cancel = close)')) { kgOfflineFlush(true); }
+            });
+        }
+        $b.text(n + ' offline sale(s) waiting to be sent').toggle(n > 0);
+    }
+    var kgFlushing = false;
+    function kgOfflineFlush(manual) {
+        if (kgFlushing) return;
+        var list = kgOfflineList();
+        if (!list.length) return;
+        kgFlushing = true;
+        (function next(i) {
+            if (i >= list.length) { kgFlushing = false; kgOfflineSave(list); return; }
+            if (list[i].error && !manual) { return next(i + 1); }
+            $.ajax({ url: '{{ route("sales.store") }}', type: 'POST', data: list[i].data, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .done(function () { list.splice(i, 1); kgOfflineSave(list); next(i); })
+                .fail(function (x) {
+                    if (x.status === 0) { kgFlushing = false; return; } // still offline, try again later
+                    var m = (x.responseJSON && (x.responseJSON.error || x.responseJSON.message)) || ('Server said ' + x.status);
+                    list[i].error = m; kgOfflineSave(list); next(i + 1);
+                });
+        })(0);
+    }
+    $(function () {
+        $('#kg-client-token').val(kgNewToken());
+        kgOfflineBadge();
+        setInterval(function () { if (navigator.onLine !== false) kgOfflineFlush(false); }, 20000);
+        window.addEventListener('online', function () { kgOfflineFlush(false); });
+    });
+
+    // Split payment: every payment line can go to its own account (branch cash, bank, mobile wallet, gateway)
+    function kgPickPayAccount($row, force) {
+        var $acc = $row.find('select.kg-pay-account');
+        if (!$acc.length) return;
+        var wh = String($('#warehouse_id').val() || $('select[name="warehouse_id"]').val() || '');
+        $acc.find('option').each(function () {
+            var w = String($(this).data('warehouse') || '');
+            var ok = !this.value || !w || w === wh;
+            $(this).prop('hidden', !ok).prop('disabled', !ok);
+        });
+        if ($.fn.selectpicker) { $acc.selectpicker('refresh'); }
+        if (!force && $acc.val()) return;
+        var method = String($row.find('select[name="paid_by_id_select[]"]').val() || '');
+        var lower = method.toLowerCase();
+        var want = method === '1' ? ['Branch Cash', 'Warehouse Cash']
+            : method === '3' ? ['Payment Gateway']
+            : ['2', '4', '6', '7'].indexOf(method) !== -1 ? []
+            : lower.indexOf('bank') !== -1 ? ['Branch Bank', 'Main Bank']
+            : ['Branch Mobile Wallet', 'Main Mobile Banking'];
+        var pick = '';
+        $acc.find('option:not(:disabled)').each(function () {
+            if (!pick && this.value && want.indexOf($(this).data('type')) !== -1) pick = this.value;
+        });
+        $acc.val(pick);
+        if ($.fn.selectpicker) { $acc.selectpicker('refresh'); }
+    }
+    $(document).on('change', 'select[name="paid_by_id_select[]"]', function () {
+        kgPickPayAccount($(this).closest('.row'), true);
+    });
+    $(document).on('show.bs.modal', '#add-payment', function () {
+        // every time the window opens the account follows the payment method that was just chosen (Cash -> cash box, Card -> gateway)
+        $('#add-payment select.kg-pay-account').each(function () { kgPickPayAccount($(this).closest('.row'), true); });
+    });
+
     // Add More Button of Multiple Payment Modal
     $('.add-more').on("click", function(e) {
         e.preventDefault();
@@ -3166,14 +3287,19 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3 col-5 mt-2 cash-received-container">
+                            <div class="col-md-2 col-5 mt-2 cash-received-container">
                                 <label>{{__('db.Cash Received')}} <x-info title="Cash handed over to you. example: sale amount is 300. customer gives you 500. cash received: 500 " type="info" /> *</label>
                                 <input type="text" name="paying_amount[]" class="form-control paying_amount numkey" required step="any">
+                            </div>
+                            <div class="col-md-3 col-12 mt-2 kg-pay-account-container">
+                                <label>{{ __('Account') }}</label>
+                                <select name="pay_account_id[]" class="form-control kg-pay-account">{!! $kgPayAccountOptions !!}</select>
                             </div>
                             <div class="col-1 mt-2">
                                 <button class="btn btn-danger remove-row mt-4">X</button>
                             </div></div>`;
         $('.add-more-row').before(htmlText);
+        kgPickPayAccount($('.add-more-row').prev(), true);
         var total_paid_amount = 0;
         $('.paid_amount').each(function(){
             var value = parseFloat($(this).val()) || 0;
@@ -3803,6 +3929,8 @@
             $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.imei-number').val(imeiNumbers);
         }
 
+        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.warranty-months').val($('#editModal select[name="edit_warranty"]').val());
+
         var edit_discount = $('input[name="edit_discount"]').val();
         var edit_qty = $('input[name="edit_qty"]').val();
         var edit_unit_price = $('input[name="edit_unit_price"]').val();
@@ -3815,8 +3943,10 @@
         var borderFloor = parseFloat($('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .last-border-price').val()) || 0;
         var effectivePrice = parseFloat(edit_unit_price) - parseFloat(edit_discount);
         if (borderFloor > 0 && effectivePrice < borderFloor) {
-            alert('Price violation: Selling price after discount (৳' + effectivePrice.toFixed(2) + ') cannot be below the minimum border floor price (৳' + borderFloor.toFixed(2) + ').');
-            return;
+            // warning only: a reason is asked for when the sale is submitted
+            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').addClass('table-warning');
+        } else {
+            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').removeClass('table-warning');
         }
 
         if(edit_qty < 0) {
@@ -4321,7 +4451,7 @@
 
     }
     // Trigger pointCalculation on body click anywhere
-     if(reward_point_setting['is_active']){
+     if(reward_point_setting && reward_point_setting['is_active']){
             $(document).on('click', 'body', function(e) {
                 // Optional: prevent firing when clicking inside modal to avoid recursion
                     if (!$(e.target).closest('#add-payment, input[name="paid_amount[]"], #customer_id, select[name="paid_by_id_select[]"]').length) {
@@ -4708,7 +4838,7 @@
         var borderFloor = parseFloat($('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .last-border-price').val()) || 0;
         $('#edit-border-price-notice').remove();
         if (borderFloor > 0) {
-            $('#editModal .modal-element').prepend('<div id="edit-border-price-notice" class="col-12"><div class="alert alert-info py-1 px-2 mb-2" style="font-size:12px;"><i class="fa fa-shield"></i> <strong>Border Floor Price:</strong> ৳' + borderFloor.toFixed(2) + ' <small class="text-muted">(Discounted unit price cannot go below this)</small></div></div>');
+            $('#editModal .modal-element').prepend('<div id="edit-border-price-notice" class="col-12"><div class="alert alert-info py-1 px-2 mb-2" style="font-size:12px;"><i class="fa fa-shield"></i> <strong>Border Floor Price:</strong> ৳' + borderFloor.toFixed(2) + ' <small class="text-muted">(Selling below this needs a reason when you submit)</small></div></div>');
         }
         populatePriceOption();
         // $("#product-cost").text(cost[rowindex]);
@@ -4754,6 +4884,11 @@
             $("#edit_unit").hide();
         }
         $('input[name="edit_unit_price"]').val(row_product_price.toFixed({{$general_setting->decimal}}));
+        var kgW = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.warranty-months').val();
+        if ($('#editModal select[name="edit_warranty"] option[value="' + kgW + '"]').length === 0) {
+            $('#editModal select[name="edit_warranty"]').append('<option value="' + kgW + '">' + kgW + ' months</option>');
+        }
+        $('#editModal select[name="edit_warranty"]').val(kgW);
         $('.selectpicker').selectpicker('refresh');
     }
 
@@ -5200,6 +5335,7 @@
                 }
 
                 saveDataToLocalStorageForCustomerDisplay('clear_all');
+                $('#kg-client-token').val(kgNewToken());
 
                 @if(in_array('restaurant',explode(',',$general_setting->modules)))
                 if ($('input[name="sale_status"]').val() == 1 || $('input[name="sale_status"]').val() == 5) {
@@ -5289,6 +5425,22 @@
             },
             error: function(xhr) {
                 $("#submit-btn").prop('disabled', false).html("{{__('db.submit')}}");
+                if (xhr.status === 0) {
+                    // no connection: keep the sale on this computer and send it as soon as the internet is back
+                    kgOfflineQueue($('.payment-form').serialize());
+                    $('#add-payment').modal('hide');
+                    cancel($('table.order-list tbody tr:last').index());
+                    $('#kg-client-token').val(kgNewToken());
+                    return;
+                }
+                if (xhr.responseJSON && xhr.responseJSON.needs_border_reason) {
+                    kgBorderReason(xhr.responseJSON.lines, function (reason) {
+                        $('input[name="border_price_reason"]').remove();
+                        $('.payment-form').append($('<input type="hidden" name="border_price_reason">').val(reason));
+                        $('.payment-form').trigger('submit');
+                    });
+                    return;
+                }
                 var errMsg = 'Checkout failed!';
                 if (xhr.responseJSON && xhr.responseJSON.error) {
                     errMsg = xhr.responseJSON.error;

@@ -66,7 +66,7 @@
                                         @endif
                                     </div>
                                     <input type="number" id="trade_in_value" name="trade_in_value" class="form-control font-weight-bold text-success" value="{{ $tradeInValue }}" step="any" min="0" required readonly style="background:#f8f9fa; font-size:16px;">
-                                    <small id="tradeInHelp" class="form-text text-muted">Locked to original sale price (৳{{ number_format($tradeInValue, 2) }}).</small>
+                                    <small id="tradeInHelp" class="form-text text-muted">Locked to original sale price (৳{{ amount_format($tradeInValue) }}).</small>
                                 </div>
                             </div>
 
@@ -111,7 +111,7 @@
                                     <label class="font-weight-bold">Selling Price of Replacement Device (৳) *</label>
                                     <input type="number" id="new_price" name="new_price" class="form-control font-weight-bold" step="any" min="0" placeholder="0.00" required style="font-size:16px;">
                                     <div id="borderFloorNotice" class="d-none mt-1">
-                                        <small class="text-danger font-weight-bold"><i class="fa fa-shield"></i> Border Floor: ৳<span id="floorVal">0</span> (Cannot sell below this)</small>
+                                        <small class="text-danger font-weight-bold"><i class="fa fa-shield"></i> Border Floor: ৳<span id="floorVal">0</span> (selling below this needs a reason)</small>
                                     </div>
                                 </div>
                             </div>
@@ -254,12 +254,6 @@
         $('#exchangeForm').on('submit', function(e) {
             e.preventDefault();
 
-            var newP = parseFloat($('#new_price').val()) || 0;
-            if (currentFloor > 0 && newP < currentFloor) {
-                alert('Price violation: Selling price cannot be below minimum border floor (৳' + currentFloor.toFixed(2) + ').');
-                return;
-            }
-
             $('#btnSubmitExchange').prop('disabled', true).html('<span class="spinner-border spinner-border-sm mr-1"></span> Processing Exchange...');
             $('#exchangeAlert').addClass('d-none');
 
@@ -281,6 +275,13 @@
                 },
                 error: function(xhr) {
                     $('#btnSubmitExchange').prop('disabled', false).html('<i class="fa fa-check-circle mr-1"></i> Complete Exchange');
+                    if (xhr.responseJSON && xhr.responseJSON.needs_border_reason) {
+                        kgBorderReason(xhr.responseJSON.lines, function (reason) {
+                            $('#exchangeForm input[name="border_price_reason"]').remove();
+                            $('#exchangeForm').append($('<input type="hidden" name="border_price_reason">').val(reason)).trigger('submit');
+                        });
+                        return;
+                    }
                     var errMsg = 'Exchange failed!';
                     if (xhr.responseJSON && xhr.responseJSON.error) {
                         errMsg = xhr.responseJSON.error;

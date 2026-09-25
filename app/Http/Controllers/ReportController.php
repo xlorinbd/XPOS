@@ -234,12 +234,12 @@ class ReportController extends Controller
                 );
                 $sale_data = Sale::whereDate('created_at', $date)->whereNull('deleted_at')->selectRaw(implode(',', $query1))->get();
 
-                $total_discount[$start] = number_format($sale_data[0]->total_discount, config('decimal'));
-                $order_discount[$start] = number_format($sale_data[0]->order_discount, config('decimal'));
-                $total_tax[$start] = number_format($sale_data[0]->total_tax, config('decimal'));
-                $order_tax[$start] = number_format($sale_data[0]->order_tax, config('decimal'));
-                $shipping_cost[$start] = number_format($sale_data[0]->shipping_cost, config('decimal'));
-                $grand_total[$start] = number_format($sale_data[0]->grand_total, config('decimal'));
+                $total_discount[$start] = amount_format($sale_data[0]->total_discount);
+                $order_discount[$start] = amount_format($sale_data[0]->order_discount);
+                $total_tax[$start] = amount_format($sale_data[0]->total_tax);
+                $order_tax[$start] = amount_format($sale_data[0]->order_tax);
+                $shipping_cost[$start] = amount_format($sale_data[0]->shipping_cost);
+                $grand_total[$start] = amount_format($sale_data[0]->grand_total);
                 $start++;
             }
             $start_day = date('w', strtotime($year.'-'.$month.'-01')) + 1;
@@ -277,12 +277,12 @@ class ReportController extends Controller
                 'SUM(grand_total / exchange_rate) as grand_total'
             );
             $sale_data = Sale::where('warehouse_id', $data['warehouse_id'])->whereDate('created_at', $date)->whereNull('deleted_at')->selectRaw(implode(',', $query1))->get();
-            $total_discount[$start] = number_format($sale_data[0]->total_discount, config('decimal'));
-            $order_discount[$start] = number_format($sale_data[0]->order_discount, config('decimal'));
-            $total_tax[$start] = number_format($sale_data[0]->total_tax, config('decimal'));
-            $order_tax[$start] = number_format($sale_data[0]->order_tax, config('decimal'));
-            $shipping_cost[$start] = number_format($sale_data[0]->shipping_cost, config('decimal'));
-            $grand_total[$start] = number_format($sale_data[0]->grand_total, config('decimal'));
+            $total_discount[$start] = amount_format($sale_data[0]->total_discount);
+            $order_discount[$start] = amount_format($sale_data[0]->order_discount);
+            $total_tax[$start] = amount_format($sale_data[0]->total_tax);
+            $order_tax[$start] = amount_format($sale_data[0]->order_tax);
+            $shipping_cost[$start] = amount_format($sale_data[0]->shipping_cost);
+            $grand_total[$start] = amount_format($sale_data[0]->grand_total);
             $start++;
         }
         $start_day = date('w', strtotime($year.'-'.$month.'-01')) + 1;
@@ -1181,7 +1181,7 @@ class ReportController extends Controller
 
                     $nested['in_stock'] = $inStock;
                     if (config('currency_position') == 'prefix') {
-                        $nested['stock_worth'] = config('currency').' '.($nested['in_stock'] * $product->price).' / '.config('currency').' '.($nested['in_stock'] * $product->cost);
+                        $nested['stock_worth'] = config('currency').($nested['in_stock'] * $product->price).' / '.config('currency').($nested['in_stock'] * $product->cost);
                     } else {
                         $nested['stock_worth'] = ($nested['in_stock'] * $product->price).' '.config('currency').' / '.($nested['in_stock'] * $product->cost).' '.config('currency');
                     }
@@ -1227,7 +1227,7 @@ class ReportController extends Controller
 
                 $nested['in_stock'] = $inStock;
                 if (config('currency_position') == 'prefix') {
-                    $nested['stock_worth'] = config('currency').' '.($nested['in_stock'] * $product->price).' / '.config('currency').' '.($nested['in_stock'] * $product->cost);
+                    $nested['stock_worth'] = config('currency').($nested['in_stock'] * $product->price).' / '.config('currency').($nested['in_stock'] * $product->cost);
                 } else {
                     $nested['stock_worth'] = ($nested['in_stock'] * $product->price).' '.config('currency').' / '.($nested['in_stock'] * $product->cost).' '.config('currency');
                 }

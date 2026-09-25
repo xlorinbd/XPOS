@@ -18,7 +18,11 @@ class ProductSerial extends Model
         'status',
         'warehouse_id',
         'purchase_id',
+        'shipment_id',
         'sale_id',
+        'purchase_cost',
+        'landed_cost',
+        'extra_cost',
     ];
 
     /**
@@ -43,6 +47,15 @@ class ProductSerial extends Model
     public function purchase()
     {
         return $this->belongsTo(Purchase::class, 'purchase_id');
+    }
+
+    /**
+     * Actual cost of this unit: purchase cost + landed cost (shipping/customs share) + later adjustments
+     * (repair, configuration upgrade).
+     */
+    public function getTotalCostAttribute(): float
+    {
+        return (float) $this->purchase_cost + (float) $this->landed_cost + (float) $this->extra_cost;
     }
 
     /**

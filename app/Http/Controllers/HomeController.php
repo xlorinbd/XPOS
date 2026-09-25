@@ -179,7 +179,7 @@ class HomeController extends Controller
             
             $revenue = $revenue - $return + $income;
             
-            $profit = $revenue + $purchase_return - $product_cost - $expense;
+            $profit = $revenue + $purchase_return - $product_cost - $expense - kg_damage_loss($start_date, $end_date, $warehouse_id ?? 0);
         }
         else
         {
@@ -224,7 +224,7 @@ class HomeController extends Controller
             
             $revenue = $revenue - $return + $income;
             
-            $profit = $revenue + $purchase_return - $product_cost - $expense;
+            $profit = $revenue + $purchase_return - $product_cost - $expense - kg_damage_loss($start_date, $end_date, $warehouse_id ?? 0);
         }
 
         //cash flow of last 6 months
@@ -566,7 +566,7 @@ class HomeController extends Controller
                 ->sum('amount');
 
             $revenue = $total_sale - $return + $income;
-            $profit = $revenue + $purchase_return - $product_cost - $expense;
+            $profit = $revenue + $purchase_return - $product_cost - $expense - kg_damage_loss($start_date, $end_date, $warehouse_id ?? 0);
 
         } else {
             config()->set('database.connections.mysql.strict', false);
@@ -645,7 +645,7 @@ class HomeController extends Controller
                 ->sum('amount');
 
             $revenue = $total_sale - $return + $income;
-            $profit = $revenue + $purchase_return - $product_cost - $expense;
+            $profit = $revenue + $purchase_return - $product_cost - $expense - kg_damage_loss($start_date, $end_date, $warehouse_id ?? 0);
         }
             // ✅ return all 8 values
 

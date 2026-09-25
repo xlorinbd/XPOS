@@ -6,7 +6,7 @@
         margin-bottom: 20px;
     }
     .quick-paste-header {
-        background: #7c5cc4;
+        background: #111111;
         color: #ffffff;
         padding: 12px 20px;
     }
@@ -21,7 +21,7 @@
         transition: all 0.2s ease;
     }
     .paste-box:focus {
-        border-color: #7c5cc4;
+        border-color: #111111;
         background-color: #ffffff;
         outline: none;
     }
@@ -37,7 +37,7 @@
         margin-bottom: 0;
     }
     .table-preview th {
-        background-color: #7c5cc4;
+        background-color: #111111;
         color: #ffffff;
         position: sticky;
         top: 0;
@@ -108,7 +108,7 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
                 <h3 class="mb-0 text-dark font-weight-bold"> Excel / Google Sheets Clipboard Quick Paste</h3>
-                <small class="text-muted">Batch import gadget specs & serials directly from clipboard table with local AI processor normalization.</small>
+                <small class="text-muted">Paste specs from a spreadsheet to create many products at once. Processors are formatted from the admin Processor List.</small>
             </div>
             <div>
                 <a href="{{ route('products.index') }}" class="btn btn-outline-secondary btn-sm">
@@ -168,14 +168,14 @@
             </div>
             <div class="card-body">
                 <p class="text-muted small mb-2">
-                    <strong>Instructions:</strong> Copy rows from Excel or Google Sheets (including or excluding headers) and paste (Ctrl+V) inside the box below. It will instantly parse all columns into the editable grid.
+                    <strong>Instructions:</strong> Copy rows from Excel or Google Sheets (with or without the header row) and paste (Ctrl+V) inside the box below. Each row becomes one product. Then type the Product Name, Condition, Adapter and prices in the grid. Text is kept exactly as pasted.
                 </p>
                 <textarea id="paste_box" class="form-control paste-box" rows="3" placeholder="Click here and press Ctrl+V to paste table data from Excel / Sheets..."></textarea>
                 
                 <div class="mt-2 d-flex justify-content-between align-items-center">
                     <div class="small text-muted">
                         <span class="text-info font-weight-bold">Expected Column Order:</span> 
-                        Name | Brand | Category | Model | Processor | RAM | Storage | Display | Graphics | Adapter | Condition | Cost | Price | Discount Price | Last Border Price | Serials
+                        Brand | Model | Processor | RAM | ROM | Display | Dedicated Graphics | Remarks &mdash; a blank cell stays blank, later columns never shift.
                     </div>
                     <div>
                         <button type="button" id="btn-clear" class="btn btn-outline-danger btn-sm mr-2" style="display: none;">
@@ -216,6 +216,7 @@
                                 <th style="min-width: 85px;">Storage</th>
                                 <th style="min-width: 90px;">Display</th>
                                 <th style="min-width: 100px;">Graphics</th>
+                                <th style="min-width: 140px;">Remarks</th>
                                 <th style="min-width: 105px;">Condition</th>
                                 <th style="min-width: 90px;">Adapter</th>
                                 <th style="min-width: 90px;">Cost (৳)</th>
@@ -248,41 +249,17 @@
 
 @push('scripts')
 <script type="text/javascript">
-    // Processor local normalizer (mirroring backend ProcessorNormalizer)
+    // Processor normalization is done by the server (admin-managed Processor List + known patterns).
     function normalizeProcessor(raw) {
-        if (!raw || !raw.trim()) return { normalized: '', is_recognized: false };
-        let clean = raw.trim();
-        let m;
+        return { normalized: (raw || '').trim(), is_recognized: false };
+    }
 
-        // Apple Silicon
-        if ((m = clean.match(/^m([1-4])\s*(ultra|max|pro)?/i))) {
-            let gen = 'M' + m[1];
-            let tier = m[2] ? ' ' + m[2].charAt(0).toUpperCase() + m[2].slice(1).toLowerCase() : '';
-            return { normalized: `Apple ${gen}${tier} Chip`, is_recognized: true };
-        }
-        // Intel Core Ultra
-        if ((m = clean.match(/(?:intel\s*)?(?:core\s*)?ultra\s*([579])\s*[-]?\s*(\d{3}[a-z]*)/i))) {
-            return { normalized: `Intel Core Ultra ${m[1]} ${m[2].toUpperCase()}`, is_recognized: true };
-        }
-        // Intel Core i3/i5/i7/i9
-        if ((m = clean.match(/(?:intel\s*)?(?:core\s*)?i([3579])\s*(?:[-]?\s*(?:\d+th\s*gen)?\s*)?[-]?\s*(\d{4,5}[a-z]*)/i))) {
-            return { normalized: `Intel Core i${m[1]}-${m[2].toUpperCase()}`, is_recognized: true };
-        }
-        // AMD Ryzen
-        if ((m = clean.match(/(?:amd\s*)?(?:r|ryzen)\s*([3579])\s*(?:ai)?\s*[-]?\s*(\d{4}[a-z]*)/i))) {
-            return { normalized: `AMD Ryzen ${m[1]} ${m[2].toUpperCase()}`, is_recognized: true };
-        }
-        // AMD Athlon
-        if ((m = clean.match(/(?:amd\s*)?athlon\s*(?:silver|gold)?\s*[-]?\s*([0-9a-z]+)/i))) {
-            return { normalized: `AMD Athlon ${m[1].toUpperCase()}`, is_recognized: true };
-        }
-        // Intel Celeron / Pentium
-        if ((m = clean.match(/(?:intel\s*)?(celeron|pentium)\s*[-]?\s*([0-9a-z]+)/i))) {
-            let fam = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
-            return { normalized: `Intel ${fam} ${m[2].toUpperCase()}`, is_recognized: true };
-        }
-
-        return { normalized: clean, is_recognized: false };
+    function normalizeProcessorsOnServer(values, done) {
+        var list = $.grep($.unique(values.slice()), function (v) { return v && v.trim() !== ''; });
+        if (!list.length) { done({}); return; }
+        $.post('{{ route("products.normalizeProcessor") }}', { _token: '{{ csrf_token() }}', values: list }, function (res) {
+            done(res || {});
+        }).fail(function () { done({}); });
     }
 
     // Number/Price cleaner (strips ৳, Tk, commas, spaces)
@@ -297,13 +274,12 @@
 
     // Copy Sample TSV to Clipboard
     $('#btn-copy-template').on('click', function() {
-        const sampleHeader = "Product Name\tBrand\tCategory\tModel\tProcessor\tRAM\tStorage\tDisplay\tGraphics\tAdapter\tCondition\tCost\tPrice\tDiscount Price\tLast Border Price\tSerials";
-        const sampleRow1 = "HP EliteBook 840 G9\tHP\tLaptop\t840 G9\ti7 1260p\t16GB DDR5\t512GB NVMe\t14\" FHD IPS\tIntel Iris Xe\tOriginal 65W\tUsed\t৳65,000\t৳75,000\t৳72,000\t৳70,000\tHP840-001:Minor scratch on lid\nHP840-002";
-        const sampleRow2 = "Apple MacBook Air M2\tApple\tLaptop\tA2681\tm2\t8GB Unified\t256GB SSD\t13.6\" Liquid Retina\t8-Core GPU\tOriginal 30W\tOpen Box\t92000\t108,000\t105,000\t102,000\tMACM2-101\nMACM2-102:Complete box";
-        
+        const sampleHeader = "Brand\tModel\tProcessor\tRAM\tROM\tDisplay\tDedicated Graphics\tRemarks";
+        const sampleRow1 = "HP\tEliteBook 840 G9\tCore i7-1260P\t16GB DDR5\t512GB NVMe\t14\" FHD IPS\t\tOriginal charger included";
+        const sampleRow2 = "Apple\tMacBook Air A2681\tM2\t8GB\t256GB SSD\t13.6\" Liquid Retina\t\t";
         const textToCopy = sampleHeader + "\n" + sampleRow1 + "\n" + sampleRow2;
         navigator.clipboard.writeText(textToCopy).then(function() {
-            alert("Sample TSV format copied to clipboard! You can paste it directly into the paste box below.");
+            alert("Sample copied. Paste it into the box below to see how rows load.");
         });
     });
 
@@ -317,54 +293,94 @@
         parseClipboardData(pastedText);
     });
 
-    // Parse pasted TSV text
-    function parseClipboardData(text) {
-        let lines = text.split(/\r\n|\n|\r/);
-        if (!lines.length) return;
-
-        let rows = [];
-        let isFirst = true;
-
-        for (let i = 0; i < lines.length; i++) {
-            let line = lines[i];
-            if (!line.trim()) continue;
-
-            let cols = line.split('\t');
-
-            // Skip header if matches "product name" or "name"
-            if (isFirst && (cols[0].trim().toLowerCase() === 'product name' || cols[0].trim().toLowerCase() === 'name')) {
-                isFirst = false;
-                continue;
+    // Quote-aware TSV parser (Excel / Google Sheets wrap cells that contain quotes, tabs or line breaks).
+    // Cell text is otherwise kept exactly as pasted: an inch mark like 15.6" is restored, nothing else is altered.
+    function parseTsv(text) {
+        // A cell is treated as quoted only if it starts with " and the closing " is followed by a tab, line break or the end.
+        // Otherwise (e.g. plain text like "Pro" Edition) the characters are kept exactly as pasted.
+        function quotedEnd(start) {
+            let j = start + 1;
+            while (j < text.length) {
+                if (text[j] === '"') {
+                    if (text[j + 1] === '"') { j += 2; continue; }
+                    let next = text[j + 1];
+                    return (next === undefined || next === '\t' || next === '\r' || next === '\n') ? j : -1;
+                }
+                j++;
             }
-            isFirst = false;
-
-            // Preserve empty tabs without shifting columns
-            rows.push({
-                name: cols[0] ? cols[0].trim() : '',
-                brand: cols[1] ? cols[1].trim() : '',
-                category: cols[2] ? cols[2].trim() : '',
-                model: cols[3] ? cols[3].trim() : '',
-                processor: cols[4] ? cols[4].trim() : '',
-                ram: cols[5] ? cols[5].trim() : '',
-                storage: cols[6] ? cols[6].trim() : '',
-                display: cols[7] ? cols[7].trim() : '',
-                dedicated_graphics: cols[8] ? cols[8].trim() : '',
-                adapter_condition: cols[9] ? cols[9].trim() : '',
-                product_condition: cols[10] ? cols[10].trim() : 'Used',
-                cost: cols[11] ? cols[11].trim() : '',
-                price: cols[12] ? cols[12].trim() : '',
-                discount_price: cols[13] ? cols[13].trim() : '',
-                last_border_price: cols[14] ? cols[14].trim() : '',
-                serials: cols[15] ? cols[15].trim() : '',
-                error_message: null
-            });
+            return -1;
         }
 
-        if (rows.length > 0) {
+        let rows = [], row = [], cell = '', i = 0, n = text.length, atCellStart = true;
+        while (i < n) {
+            let ch = text[i];
+            if (atCellStart && ch === '"') {
+                let end = quotedEnd(i);
+                if (end !== -1) {
+                    cell = text.slice(i + 1, end).replace(/""/g, '"');
+                    i = end + 1;
+                    atCellStart = false;
+                    continue;
+                }
+            }
+            if (ch === '\t') { row.push(cell); cell = ''; atCellStart = true; i++; continue; }
+            if (ch === '\r' || ch === '\n') {
+                if (ch === '\r' && text[i + 1] === '\n') i++;
+                row.push(cell); rows.push(row); row = []; cell = ''; atCellStart = true; i++; continue;
+            }
+            cell += ch; atCellStart = false; i++;
+        }
+        if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+        return rows;
+    }
+
+    // Column order (fixed): Brand | Model | Processor | RAM | ROM | Display | Dedicated Graphics | Remarks
+    // A blank cell stays blank; later columns never shift left.
+    function parseClipboardData(text) {
+        let table = parseTsv(text);
+        if (!table.length) return;
+
+        let rows = [];
+        table.forEach(function (cols, r) {
+            let allBlank = cols.every(function (v) { return String(v).trim() === ''; });
+            if (allBlank) return;
+            if (r === 0 && String(cols[0]).trim().toLowerCase() === 'brand') return; // header row
+
+            let cell = function (k) { return cols[k] !== undefined ? String(cols[k]).replace(/\s*[\r\n]+\s*/g, ' ').trim() : ''; };
+            rows.push({
+                name: '',
+                brand: cell(0),
+                category: '',
+                model: cell(1),
+                processor: cell(2),
+                ram: cell(3),
+                storage: cell(4),
+                display: cell(5),
+                dedicated_graphics: cell(6),
+                remarks: cell(7),
+                adapter_condition: '',
+                product_condition: '',
+                cost: '',
+                price: '',
+                discount_price: '',
+                last_border_price: '',
+                serials: '',
+                error_message: null
+            });
+        });
+
+        if (!rows.length) return;
+
+        normalizeProcessorsOnServer(rows.map(function (r) { return r.processor; }), function (map) {
+            rows.forEach(function (r) {
+                if (r.processor && map[r.processor] && map[r.processor].normalized) {
+                    r.processor = map[r.processor].normalized;
+                }
+            });
             parsedRows = rows;
             renderPreviewGrid();
             $('#paste_box').val('');
-        }
+        });
     }
 
     // Render Preview Grid with real-time validation
@@ -406,6 +422,9 @@
             // Name check
             if (!row.name || !row.name.trim()) {
                 rowErrors.push("Product Name is required.");
+            }
+            if (!row.product_condition) {
+                rowErrors.push("Select a Condition.");
             }
 
             // Price parsing
@@ -483,12 +502,14 @@
                     <td><input type="text" class="cell-storage" value="${escapeHtml(row.storage)}" placeholder="e.g. 512GB"></td>
                     <td><input type="text" class="cell-display" value="${escapeHtml(row.display)}" placeholder="e.g. 14 FHD"></td>
                     <td><input type="text" class="cell-graphics" value="${escapeHtml(row.dedicated_graphics)}" placeholder="GPU"></td>
+                    <td><input type="text" class="cell-remarks" value="${escapeHtml(row.remarks)}" placeholder="Remarks"></td>
                     <td>
-                        <select class="cell-condition">
-                            <option value="used" ${(row.product_condition||'').toLowerCase().includes('used') ? 'selected' : ''}>Used</option>
-                            <option value="open_box" ${(row.product_condition||'').toLowerCase().includes('open') ? 'selected' : ''}>Open Box</option>
-                            <option value="brand_new" ${(row.product_condition||'').toLowerCase().includes('brand') ? 'selected' : ''}>Brand New</option>
-                            <option value="box_opened" ${(row.product_condition||'').toLowerCase().includes('box') && !(row.product_condition||'').toLowerCase().includes('open') ? 'selected' : ''}>Box Opened</option>
+                        <select class="cell-condition ${!row.product_condition ? 'cell-error' : ''}">
+                            <option value="">Select...</option>
+                            <option value="used" ${row.product_condition === 'used' ? 'selected' : ''}>Used</option>
+                            <option value="open_box" ${row.product_condition === 'open_box' ? 'selected' : ''}>Open Box</option>
+                            <option value="brand_new" ${row.product_condition === 'brand_new' ? 'selected' : ''}>Brand New (Intact)</option>
+                            <option value="box_opened" ${row.product_condition === 'box_opened' ? 'selected' : ''}>Box Opend (Brand New Just Box Open)</option>
                         </select>
                     </td>
                     <td><input type="text" class="cell-adapter" value="${escapeHtml(row.adapter_condition)}" placeholder="Adapter"></td>
@@ -522,7 +543,7 @@
     }
 
     // In-cell live update handlers
-    $(document).on('change keyup', '#preview-tbody input, #preview-tbody select, #preview-tbody textarea', function() {
+    $(document).on('change keyup', '#preview-tbody input, #preview-tbody select, #preview-tbody textarea', function(ev) {
         let tr = $(this).closest('tr');
         let idx = parseInt(tr.data('idx'));
         if (isNaN(idx) || !parsedRows[idx]) return;
@@ -536,6 +557,7 @@
         parsedRows[idx].storage = tr.find('.cell-storage').val();
         parsedRows[idx].display = tr.find('.cell-display').val();
         parsedRows[idx].dedicated_graphics = tr.find('.cell-graphics').val();
+        parsedRows[idx].remarks = tr.find('.cell-remarks').val();
         parsedRows[idx].product_condition = tr.find('.cell-condition').val();
         parsedRows[idx].adapter_condition = tr.find('.cell-adapter').val();
         parsedRows[idx].cost = tr.find('.cell-cost').val();
@@ -545,13 +567,15 @@
         parsedRows[idx].serials = tr.find('.cell-serials').val();
         parsedRows[idx].error_message = null; // reset server error on edit
 
-        // Live processor tag update without full re-render
-        if ($(this).hasClass('cell-processor')) {
-            let norm = normalizeProcessor(parsedRows[idx].processor);
-            tr.find('.badge-norm').remove();
-            if (norm.is_recognized) {
-                tr.find('.cell-processor').after(`<span class="badge-norm mt-1" title="${norm.normalized}"> ${norm.normalized}</span>`);
-            }
+        // Format the processor when the cell is left (admin list + known patterns)
+        if ($(this).hasClass('cell-processor') && ev.type === 'change') {
+            let input = $(this), raw = parsedRows[idx].processor;
+            normalizeProcessorsOnServer([raw], function (map) {
+                if (raw && map[raw] && map[raw].normalized) {
+                    parsedRows[idx].processor = map[raw].normalized;
+                    input.val(map[raw].normalized);
+                }
+            });
         }
     });
 

@@ -264,11 +264,11 @@
                                         @endif
                                     @endforeach
                                     <br>{{ $product_sale_data->qty }} x
-                                    {{ number_format((float) ($product_sale_data->total / $product_sale_data->qty), $general_setting->decimal, '.', ',') }}
+                                    {{ amount_format((float) ($product_sale_data->total / $product_sale_data->qty)) }}
 
                                     @if (!empty($topping_prices))
                                         <small>+
-                                            {{ implode(' + ', array_map(fn($price) => number_format($price, $general_setting->decimal, '.', ','), $topping_prices)) }}</small>
+                                            {{ implode(' + ', array_map(fn($price) => amount_format($price), $topping_prices)) }}</small>
                                     @endif
 
                                     @if ($product_sale_data->tax_rate)

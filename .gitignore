@@ -29,3 +29,4 @@ npm-debug.log
 yarn-error.log
 /public/stock_count
 scratch/
+/.phpunit.cache

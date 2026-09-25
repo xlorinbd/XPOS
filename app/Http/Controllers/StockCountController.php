@@ -131,7 +131,7 @@ class StockCountController extends Controller
                         $difference[] = $temp_dif = $product_data->qty * (-1);
                         $counted[] = 0;
                     }
-                    $cost[] = $product_data->cost * $temp_dif;
+                    $cost[] = can_view_cost() ? $product_data->cost * $temp_dif : null;
                 }
             }
             $i++;

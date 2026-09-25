@@ -101,12 +101,9 @@ class ExchangeController extends Controller
             return response()->json(['error' => 'Selected replacement product not found.'], 422);
         }
 
-        if ($newProduct->last_border_price && (float)$newProduct->last_border_price > 0) {
-            if ($newPrice < (float)$newProduct->last_border_price) {
-                return response()->json([
-                    'error' => "Price violation: Replacement price (৳" . number_format($newPrice, 2) . ") cannot be below minimum border floor price (৳" . number_format($newProduct->last_border_price, 2) . ")."
-                ], 422);
-            }
+        [$borderReason, $borderResponse] = \App\Services\BorderPrice::check([$newProduct->id], [$newPrice], $request->border_price_reason);
+        if ($borderResponse) {
+            return $borderResponse;
         }
 
         DB::beginTransaction();
@@ -241,6 +238,7 @@ class ExchangeController extends Controller
                 'payment_status' => ($difference <= 0) ? 4 : 4, // fully settled
                 'paid_amount' => $newPrice,
                 'sale_note' => "Exchange swap from old serial: {$lockedOldSerial->serial_number} (Return Ref: {$returnRef})",
+                'border_price_reason' => $borderReason,
             ]);
 
             Product_Sale::create([

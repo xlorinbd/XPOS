@@ -30,9 +30,11 @@ class WarehouseController extends Controller
                     return $query->where('is_active', 1);
                 }),
             ],
+            'type' => ['nullable', Rule::in(array_keys(Warehouse::TYPES))],
         ]);
         $input = $request->all();
         $input['is_active'] = true;
+        $input['type'] = $input['type'] ?? 'branch';
 
         $lims_warehouse_data = Warehouse::create($input);
 
@@ -63,8 +65,12 @@ class WarehouseController extends Controller
                     return $query->where('is_active', 1);
                 }),
             ],
+            'type' => ['nullable', Rule::in(array_keys(Warehouse::TYPES))],
         ]);
         $input = $request->all();
+        if (empty($input['type'])) {
+            unset($input['type']);
+        }
         $lims_warehouse_data = Warehouse::find($input['warehouse_id']);
         $lims_warehouse_data->update($input);
         $this->cacheForget('warehouse_list');

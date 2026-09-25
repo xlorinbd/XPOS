@@ -53,28 +53,28 @@
         <div class="col-md-3">
             <div class="p-2 border rounded bg-light">
                 <strong>Opening Balance</strong><br>
-                <h5>{{ number_format($opening_balance, 2) }}</h5>
+                <h5>{{ amount_format($opening_balance) }}</h5>
             </div>
         </div>
 
         <div class="col-md-3">
             <div class="p-2 border rounded bg-light">
                 <strong>Total Sales</strong><br>
-                <h5>{{ number_format($total_sales, 2) }}</h5>
+                <h5>{{ amount_format($total_sales) }}</h5>
             </div>
         </div>
 
         <div class="col-md-3">
             <div class="p-2 border rounded bg-light">
                 <strong>Total Paid</strong><br>
-                <h5>{{ number_format($total_paid, 2) }}</h5>
+                <h5>{{ amount_format($total_paid) }}</h5>
             </div>
         </div>
 
         <div class="col-md-3">
             <div class="p-2 border rounded bg-light">
                 <strong>Balance Due</strong><br>
-                <h5 class="text-danger">{{ number_format($balance_due, 2) }}</h5>
+                <h5 class="text-danger">{{ amount_format($balance_due) }}</h5>
             </div>
         </div>
 

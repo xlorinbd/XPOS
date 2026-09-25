@@ -96,7 +96,7 @@
                                 </td>
                                 <td>{{ $rma->supplier ? $rma->supplier->name : 'N/A' }}</td>
                                 <td>{{ $rma->warehouse ? $rma->warehouse->name : '' }}</td>
-                                <td>{{ number_format($rma->purchase_cost, 2) }}</td>
+                                <td>{{ amount_format($rma->purchase_cost) }}</td>
                                 <td>
                                     @if($rma->status === 'replaced')
                                         <span class="text-success font-weight-bold">
@@ -104,7 +104,7 @@
                                         </span>
                                     @elseif($rma->status === 'refunded')
                                         <span class="text-info font-weight-bold">
-                                            Refund: {{ number_format($rma->refund_amount, 2) }}
+                                            Refund: {{ amount_format($rma->refund_amount) }}
                                         </span>
                                     @elseif($rma->status === 'rejected_returned')
                                         <span class="text-danger font-weight-bold">

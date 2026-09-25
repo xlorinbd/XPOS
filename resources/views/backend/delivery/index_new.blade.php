@@ -73,7 +73,7 @@
                     <td>{!!$name .'<br>'. $phone_number!!}</td>
                     <td>{{ $delivery->address }}</td>
                     <td>{{ $productNames }}</td>
-                    <td>{{number_format($grand_total, 2)}}</td>
+                    <td>{{amount_format($grand_total)}}</td>
                     @if($delivery->status == 1)
                     <td><div class="badge badge-info">{{$status}}</div></td>
                     @elseif($delivery->status == 2)

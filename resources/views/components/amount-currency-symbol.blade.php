@@ -13,16 +13,16 @@
     'decimal' => $decimal,
 ])
 
-@if (strlen($currency_symbol) > 1)
+@if (mb_strlen($currency_symbol) > 1)
     @if ($currency_position == 'prefix')
-        <span>{{ $currency_symbol }}&nbsp;{{ number_format((float) $amount, $decimal, '.', ',') }}</span>
+        <span>{{ $currency_symbol }}&nbsp;{{ amount_format((float) $amount) }}</span>
     @else
-        <span>{{ number_format((float) $amount, $decimal, '.', ',') }}&nbsp;{{ $currency_symbol }}</span>
+        <span>{{ amount_format((float) $amount) }}&nbsp;{{ $currency_symbol }}</span>
     @endif
 @else
     @if ($currency_position == 'prefix')
-        <span>{{ $currency_symbol }}{{ number_format((float) $amount, $decimal, '.', ',') }}</span>
+        <span>{{ $currency_symbol }}{{ amount_format((float) $amount) }}</span>
     @else
-        <span>{{ number_format((float) $amount, $decimal, '.', ',') }}{{ $currency_symbol }}</span>
+        <span>{{ amount_format((float) $amount) }}{{ $currency_symbol }}</span>
     @endif
 @endif

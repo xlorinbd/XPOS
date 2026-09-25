@@ -32,74 +32,11 @@ class AccountsController extends Controller
 
         $lims_account_all = Account::where('is_active', true)->get();
 
+        $ledger = app(\App\Services\AccountLedger::class);
         foreach ($lims_account_all as $account) {
-
-            // -------------------
-            // CREDIT
-            // -------------------
-            $payment_received = Payment::whereNotNull('sale_id')
-                ->where('account_id', $account->id)
-                ->sum('amount');
-
-            $return_purchase = DB::table('return_purchases')
-                ->where('account_id', $account->id)
-                ->sum('grand_total');
-
-            $recieved_money_via_transfer = MoneyTransfer::where('to_account_id', $account->id)
-                ->sum('amount');
-
-            $income = Income::where('account_id', $account->id)
-                ->sum('amount');
-
-            $credit = $payment_received + $return_purchase + $recieved_money_via_transfer + ($account->initial_balance ?? 0) + $income;
-
-            // -------------------
-            // DEBIT
-            // -------------------
-            // Sales Return → due adjust + refund logic
-            $sales_returns = Returns::with('sale')
-                ->where('account_id', $account->id)
-                ->get();
-
-            $total_sales_return_debit = 0;
-            foreach ($sales_returns as $return) {
-                $sale = $return->sale;
-                if (!$sale) continue;
-
-                $sale_total  = $sale->grand_total;
-                $paid        = $sale->paid_amount;
-                $return_amt  = $return->grand_total;
-                $due         = $sale_total - $paid;
-
-                $due_adjust  = min($due, $return_amt);
-                $refund      = $return_amt - $due_adjust;
-
-                if ($refund > 0) {
-                    $total_sales_return_debit += $refund;
-                }
-            }
-
-            $payment_sent = Payment::whereNotNull('purchase_id')
-                ->where('account_id', $account->id)
-                ->sum('amount');
-
-            $expenses = DB::table('expenses')
-                ->where('account_id', $account->id)
-                ->sum('amount');
-
-            $payrolls = DB::table('payrolls')
-                ->where('account_id', $account->id)
-                ->sum('amount');
-
-            $sent_money_via_transfer = MoneyTransfer::where('from_account_id', $account->id)
-                ->sum('amount');
-
-            $debit = $total_sales_return_debit + $payment_sent + $expenses + $payrolls + $sent_money_via_transfer;
-
-            // -------------------
-            // FINAL BALANCE
-            // -------------------
-            $account->balance = $credit - $debit;
+            $account->balance = $ledger->balance($account);
+            $account->in_transit = $ledger->inTransit($account->id);
+            $account->pending_confirm = $ledger->pendingConfirmation($account->id);
         }
 
         return view('backend.account.index', compact('lims_account_all'));
@@ -172,18 +109,11 @@ class AccountsController extends Controller
             $lims_account_list = Account::where('is_active', true)->get();
             $debit = [];
             $credit = [];
+            $ledger = app(\App\Services\AccountLedger::class);
             foreach ($lims_account_list as $account) {
-                $payment_recieved = Payment::whereNotNull('sale_id')->where('account_id', $account->id)->sum('amount');
-                $payment_sent = Payment::whereNotNull('purchase_id')->where('account_id', $account->id)->sum('amount');
-                $returns = DB::table('returns')->where('account_id', $account->id)->sum('grand_total');
-                $return_purchase = DB::table('return_purchases')->where('account_id', $account->id)->sum('grand_total');
-                $expenses = DB::table('expenses')->where('account_id', $account->id)->sum('amount');
-                $payrolls = DB::table('payrolls')->where('account_id', $account->id)->sum('amount');
-                $sent_money_via_transfer = MoneyTransfer::where('from_account_id', $account->id)->sum('amount');
-                $recieved_money_via_transfer = MoneyTransfer::where('to_account_id', $account->id)->sum('amount');
-
-                $credit[] = $payment_recieved + $return_purchase + $recieved_money_via_transfer + $account->initial_balance;
-                $debit[] = $payment_sent + $returns + $expenses + $payrolls + $sent_money_via_transfer;
+                $totals = $ledger->totals($account);
+                $credit[] = $totals['credit'];
+                $debit[] = $totals['debit'];
             }
             return view('backend.account.balance_sheet', compact('lims_account_list', 'debit', 'credit'));
         } else
@@ -212,15 +142,7 @@ class AccountsController extends Controller
             // Sale Payment
             $sale_payments = Payment::whereNotNull('sale_id')
                 ->where('account_id', $data['account_id'])
-                ->whereBetween('created_at', [$start_date, $end_date])
-                ->get()
-                ->map(function ($item) {
-                    $item->type = 'credit';
-                    return $item;
-                });
-
-            // Money Received
-            $money_received = MoneyTransfer::where('to_account_id', $data['account_id'])
+                ->where('confirm_status', '!=', 'pending')
                 ->whereBetween('created_at', [$start_date, $end_date])
                 ->get()
                 ->map(function ($item) {
@@ -248,7 +170,6 @@ class AccountsController extends Controller
 
             $account_statement_array = $account_statement_array
                 ->concat($sale_payments)
-                ->concat($money_received)
                 ->concat($purchase_return)
                 ->concat($income);
         }
@@ -279,15 +200,6 @@ class AccountsController extends Controller
 
             // Payroll
             $payroll = Payroll::where('account_id', $data['account_id'])
-                ->whereBetween('created_at', [$start_date, $end_date])
-                ->get()
-                ->map(function ($item) {
-                    $item->type = 'debit';
-                    return $item;
-                });
-
-            // Money Sent
-            $money_sent = MoneyTransfer::where('from_account_id', $data['account_id'])
                 ->whereBetween('created_at', [$start_date, $end_date])
                 ->get()
                 ->map(function ($item) {
@@ -327,9 +239,13 @@ class AccountsController extends Controller
                 ->concat($purchase_payment)
                 ->concat($expense)
                 ->concat($payroll)
-                ->concat($money_sent)
                 ->concat($sales_returns);
         }
+
+        // cash transfers (sent, received, refunded)
+        $account_statement_array = $account_statement_array->concat(
+            app(\App\Services\AccountLedger::class)->statementRows((int) $data['account_id'], $start_date, $end_date, (string) $data['type'])
+        );
 
         // -----------------------------
         // Sort by created_at ASC

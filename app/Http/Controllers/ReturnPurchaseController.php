@@ -212,7 +212,7 @@ class ReturnPurchaseController extends Controller
                     $supplier = new Supplier;
                     $nestedData['supplier'] = 'N/A';
                 }
-                $nestedData['grand_total'] = number_format($returns->grand_total / $returns->exchange_rate, config('decimal'));
+                $nestedData['grand_total'] = amount_format($returns->grand_total / $returns->exchange_rate);
                 $nestedData['options'] = '<div class="btn-group">
                             <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">'.__("db.action").'
                               <span class="caret"></span>
@@ -453,6 +453,12 @@ class ReturnPurchaseController extends Controller
             $data['document'] = $documentName;
         }
 
+        // a supplier credit moves no money now, so it must not touch any account (account 0 is never counted)
+        if (($data['refund_type'] ?? 'refund') === 'credit') {
+            $data['account_id'] = 0;
+        } else {
+            $data['refund_type'] = 'refund';
+        }
         $lims_return_data = ReturnPurchase::create($data);
         $mail_data['email'] = '';
         if($data['supplier_id']) {

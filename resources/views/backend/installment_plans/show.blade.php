@@ -33,10 +33,10 @@
         <div class="card-body">
             <div class="row mb-4">
                 <div class="col-md-4"><strong>Plan Name:</strong> {{ $plan->name }}</div>
-                <div class="col-md-4"><strong>Price:</strong> {{ number_format($plan->price, 2) }}</div>
-                <div class="col-md-4"><strong>Additional Amount:</strong> {{ number_format($plan->additional_amount, 2) }}</div>
-                <div class="col-md-4"><strong>Total Amount:</strong> {{ number_format($plan->total_amount, 2) }}</div>
-                <div class="col-md-4"><strong>Down Payment:</strong> {{ number_format($plan->down_payment, 2) }}</div>
+                <div class="col-md-4"><strong>Price:</strong> {{ amount_format($plan->price) }}</div>
+                <div class="col-md-4"><strong>Additional Amount:</strong> {{ amount_format($plan->additional_amount) }}</div>
+                <div class="col-md-4"><strong>Total Amount:</strong> {{ amount_format($plan->total_amount) }}</div>
+                <div class="col-md-4"><strong>Down Payment:</strong> {{ amount_format($plan->down_payment) }}</div>
                 <div class="col-md-4"><strong>Months:</strong> {{ $plan->months }}</div>
             </div>
 
@@ -69,7 +69,7 @@
                                     <span class="badge bg-warning text-dark">Pending</span>
                                 </td>
                             @endif
-                            <td class="text-center">{{ number_format($installment->amount, 2) }}</td>
+                            <td class="text-center">{{ amount_format($installment->amount) }}</td>
                             <td class="text-center">
                                 @if ($installment->status === 'pending')
                                     <button 

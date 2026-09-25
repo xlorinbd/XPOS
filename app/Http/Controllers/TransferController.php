@@ -34,6 +34,29 @@ class TransferController extends Controller
 {
     use \App\Traits\MailInfo;
 
+    /**
+     * Roles that may not see purchase price never send it: cost, tax and totals are taken from the product record.
+     */
+    private function enforceServerCost(array &$data): void
+    {
+        if (can_view_cost() || empty($data['product_id'])) {
+            return;
+        }
+        $totalCost = 0;
+        foreach ($data['product_id'] as $i => $pid) {
+            $cost = (float) Product::where('id', $pid)->value('cost');
+            $qty = (float) ($data['qty'][$i] ?? 0);
+            $data['net_unit_cost'][$i] = $cost;
+            $data['tax'][$i] = 0;
+            $data['tax_rate'][$i] = 0;
+            $data['subtotal'][$i] = $cost * $qty;
+            $totalCost += $cost * $qty;
+        }
+        $data['total_tax'] = 0;
+        $data['total_cost'] = $totalCost;
+        $data['grand_total'] = $totalCost + (float) ($data['shipping_cost'] ?? 0);
+    }
+
     public function index(Request $request)
     {
         $role = Role::find(Auth::user()->role_id);
@@ -210,8 +233,8 @@ class TransferController extends Controller
                 $nestedData['reference_no'] = $transfer->reference_no;
                 $nestedData['from_warehouse'] = $transfer->fromWarehouse->name;
                 $nestedData['to_warehouse'] = $transfer->toWarehouse->name;
-                $nestedData['shipping_cost'] = number_format($transfer->shipping_cost, config('decimal'));
-                $nestedData['grand_total'] = number_format($transfer->grand_total, config('decimal'));
+                $nestedData['shipping_cost'] = amount_format($transfer->shipping_cost);
+                $nestedData['grand_total'] = can_view_cost() ? amount_format($transfer->grand_total) : '-';
 
                 if($transfer->is_sent == 1) {
                     $nestedData['is_sent'] = '<div class="badge badge-success">'.__('db.Yes').'</div>';
@@ -340,6 +363,7 @@ class TransferController extends Controller
             $document->move(public_path('documents/transfer'), $documentName);
             $data['document'] = $documentName;
         }
+        $this->enforceServerCost($data);
         $lims_transfer_data = Transfer::create($data);
 
         $product_id = $data['product_id'];
@@ -538,6 +562,13 @@ class TransferController extends Controller
                 $message .= '. Please Setup Your Mail Credentials to send Email.';
             }
         }
+        // tell the sending and receiving branches (and the managers) about the new stock transfer
+        $kgFrom = \App\Models\Warehouse::find($lims_transfer_data->from_warehouse_id);
+        $kgTo = \App\Models\Warehouse::find($lims_transfer_data->to_warehouse_id);
+        $kgText = 'Stock transfer ' . $lims_transfer_data->reference_no . ': ' . ($kgFrom->name ?? '') . ' to ' . ($kgTo->name ?? '') . ' (' . (int) $lims_transfer_data->total_qty . ' pcs) created by ' . Auth::user()->name . '.';
+        \App\Services\KgNotifier::toRoles(['Branch Manager', 'Seller', 'Manager', 'Admin'], $kgText . ' Please prepare it.', '/transfers', 'transfer', (int) $lims_transfer_data->from_warehouse_id, Auth::id());
+        \App\Services\KgNotifier::toRoles(['Branch Manager', 'Seller'], $kgText . ' Items are on the way to you.', '/transfers', 'transfer', (int) $lims_transfer_data->to_warehouse_id, Auth::id());
+
         return redirect('transfers')->with('message', $message);
     }
 
@@ -811,7 +842,7 @@ class TransferController extends Controller
 
         $product[] = $lims_product_data->name;
         $product[] = $lims_product_data->code;
-        $product[] = $lims_product_data->cost;
+        $product[] = can_view_cost() ? $lims_product_data->cost : 0;
 
         // if($lims_product_data->is_variant){
         //     $product[] = $lims_product_data->item_code;
@@ -893,7 +924,7 @@ class TransferController extends Controller
         $product[] = $lims_product_data->is_variant;
         $product[] = $product_data[4];
         $product[] = $lims_product_data->wholesale_price;
-        $product[] = $lims_product_data->cost;
+        $product[] = can_view_cost() ? $lims_product_data->cost : 0;
         $product[] = $product_data[2];
         return $product;
 
@@ -924,7 +955,7 @@ class TransferController extends Controller
             $product_transfer[2][$key] = $unit->unit_code;
             $product_transfer[3][$key] = $product_transfer_data->tax;
             $product_transfer[4][$key] = $product_transfer_data->tax_rate;
-            $product_transfer[5][$key] = $product_transfer_data->total;
+            $product_transfer[5][$key] = can_view_cost() ? $product_transfer_data->total : '-';
             if($product_transfer_data->product_batch_id) {
                 $product_batch_data = ProductBatch::select('batch_no')->find($product_transfer_data->product_batch_id);
                 $product_transfer[6][$key] = $product_batch_data->batch_no;
@@ -957,7 +988,7 @@ class TransferController extends Controller
             $product_transfer['unit'][$key] = $unit->unit_code;
             $product_transfer['tax'][$key] = $product_transfer_data->tax;
             $product_transfer['tax_rate'][$key] = $product_transfer_data->tax_rate;
-            $product_transfer['total'][$key] = $product_transfer_data->total;
+            $product_transfer['total'][$key] = can_view_cost() ? $product_transfer_data->total : '-';
             if($product_transfer_data->product_batch_id) {
                 $product_batch_data = ProductBatch::select('batch_no')->find($product_transfer_data->product_batch_id);
                 $product_transfer['batch_no'][$key] = $product_batch_data->batch_no;
@@ -1157,6 +1188,7 @@ class TransferController extends Controller
         }
 
         $lims_product_transfer_data = ProductTransfer::where('transfer_id', $id)->get();
+        $this->enforceServerCost($data);
         $product_id = $data['product_id'];
         $imei_number = $data['imei_number'];
         $product_batch_id = $data['product_batch_id'] ?? NULL;

@@ -313,7 +313,7 @@ class QuotationController extends Controller
                     $status = __('db.Sent');
                 }
 
-                $nestedData['grand_total'] = number_format($quotation->grand_total, config('decimal'));
+                $nestedData['grand_total'] = amount_format($quotation->grand_total);
                 $nestedData['options'] = '<div class="btn-group">
                             <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">'.__("db.action").'
                               <span class="caret"></span>

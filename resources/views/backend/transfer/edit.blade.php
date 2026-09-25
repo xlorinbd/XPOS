@@ -171,18 +171,18 @@
                                                         </td>
                                                         <td>{{$product_data->code}}</td>
                                                         <td><input type="number" class="form-control qty" name="qty[]" value="{{$product_transfer->qty}}" required step="any" /></td>
-                                                        <td class="net_unit_cost">{{ number_format((float)$product_transfer->net_unit_cost, $general_setting->decimal, '.', '')}} </td>
+                                                        <td class="net_unit_cost">{{ can_view_cost() ? number_format((float)$product_transfer->net_unit_cost, $general_setting->decimal, '.', '') : '' }} </td>
                                                         <td class="tax">{{ number_format((float)$product_transfer->tax, $general_setting->decimal, '.', '')}}</td>
-                                                        <td class="sub-total">{{ number_format((float)$product_transfer->total, $general_setting->decimal, '.', '')}}</td>
+                                                        <td class="sub-total">{{ can_view_cost() ? number_format((float)$product_transfer->total, $general_setting->decimal, '.', '') : '' }}</td>
                                                         <td><button type="button" class="ibtnDel btn btn-md btn-danger"><i class="dripicons-trash"></i></button></td>
                                                         <input type="hidden" class="product-id" name="product_id[]" value="{{$product_data->id}}"/>
                                                         <input type="hidden" name="product_variant_id[]" value="{{$product_variant_id}}"/>
                                                         <input type="hidden" class="product-code" name="product_code[]" value="{{$product_data->code}}"/>
-                                                        <input type="hidden" class="product-cost" name="product_cost[]" value="{{ $product_cost}}"/>
+                                                        <input type="hidden" class="product-cost" name="product_cost[]" value="{{ can_view_cost() ? $product_cost : 0 }}"/>
                                                         <input type="hidden" class="purchase-unit" name="purchase_unit[]" value="{{$unit_name}}"/>
                                                         <input type="hidden" class="purchase-unit-operator" value="{{$unit_operator}}"/>
                                                         <input type="hidden" class="purchase-unit-operation-value" value="{{$unit_operation_value}}"/>
-                                                        <input type="hidden" class="net_unit_cost" name="net_unit_cost[]" value="{{$product_transfer->net_unit_cost}}" />
+                                                        <input type="hidden" class="net_unit_cost" name="net_unit_cost[]" value="{{ can_view_cost() ? $product_transfer->net_unit_cost : 0 }}" />
                                                         <input type="hidden" class="tax-rate" name="tax_rate[]" value="{{$product_transfer->tax_rate}}"/>
                                                         @if($tax)
                                                         <input type="hidden" class="tax-name" value="{{$tax->name}}" />
@@ -191,7 +191,7 @@
                                                         @endif
                                                         <input type="hidden" class="tax-method" value="{{$product_data->tax_method}}"/>
                                                         <input type="hidden" class="tax-value" name="tax[]" value="{{$product_transfer->tax}}" />
-                                                        <input type="hidden" class="subtotal-value" name="subtotal[]" value="{{$product_transfer->total}}" />
+                                                        <input type="hidden" class="subtotal-value" name="subtotal[]" value="{{ can_view_cost() ? $product_transfer->total : 0 }}" />
                                                         <input type="hidden" class="imei-number" name="imei_number[]" value="{{$product_transfer->imei_number}}" />
                                                     </tr>
                                                     @endforeach
@@ -882,4 +882,15 @@ $('#transfer-form').on('submit',function(e){
     }
 });
 </script>
+
+@if(!can_view_cost())
+<style>
+    #myTable th:nth-child(4), #myTable td:nth-child(4),
+    #myTable th:nth-child(5), #myTable td:nth-child(5),
+    #myTable th:nth-child(6), #myTable td:nth-child(6) { display: none; }
+</style>
+<script>
+    $(function () { $('input[name="edit_unit_cost"]').closest('.form-group').hide(); });
+</script>
+@endif
 @endpush

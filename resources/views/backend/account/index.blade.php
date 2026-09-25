@@ -27,7 +27,12 @@
                 <tr>
                     <td>{{$key}}</td>
                     <td>{{ $account->account_no }}</td>
-                    <td>{{ $account->name }}</td>
+                    @php
+                        $kgBranchName = $account->warehouse_id ? optional(\App\Models\Warehouse::find($account->warehouse_id))->name : null;
+                        $kgOwnerName = $account->owner_user_id ? optional(\App\Models\User::find($account->owner_user_id))->name : null;
+                        $kgMeta = collect([$account->type, $kgBranchName, $kgOwnerName])->filter()->implode(' / ');
+                    @endphp
+                    <td>{{ $account->name }}<br><small class="text-muted">{{ $kgMeta }}</small></td>
                     @if($account->initial_balance)
                         <td>{{ number_format((float)$account->initial_balance, $general_setting->decimal, '.', '')}}</td>
                     @else
@@ -35,7 +40,14 @@
                     @endif
 
                     @if($account->balance)
-                        <td>{{ number_format((float)$account->balance, $general_setting->decimal, '.', '')}}</td>
+                        <td>{{ money($account->balance) }}
+                            @if(($account->in_transit ?? 0) > 0)
+                                <br><small class="text-warning">{{ money($account->in_transit) }} in transit</small>
+                            @endif
+                            @if(($account->pending_confirm ?? 0) > 0)
+                                <br><small class="text-warning">{{ money($account->pending_confirm) }} waiting for confirmation</small>
+                            @endif
+                        </td>
                     @else
                         <td>{{number_format(0, $general_setting->decimal, '.', '')}}</td>
                     @endif
@@ -54,7 +66,7 @@
                                 <span class="sr-only">Toggle Dropdown</span>
                             </button>
                             <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">
-                                <li><button type="button" data-id="{{$account->id}}" data-account_no="{{$account->account_no}}" data-name="{{$account->name}}"  data-initial_balance="{{$account->initial_balance}}" data-note="{{$account->note}}" class="edit-btn btn btn-link" data-toggle="modal" data-target="#editModal"><i class="dripicons-document-edit"></i> {{__('db.edit')}}</button></li>
+                                <li><button type="button" data-id="{{$account->id}}" data-account_no="{{$account->account_no}}" data-name="{{$account->name}}"  data-initial_balance="{{$account->initial_balance}}" data-note="{{$account->note}}" data-type="{{$account->type}}" data-warehouse_id="{{$account->warehouse_id}}" data-owner_user_id="{{$account->owner_user_id}}" class="edit-btn btn btn-link" data-toggle="modal" data-target="#editModal"><i class="dripicons-document-edit"></i> {{__('db.edit')}}</button></li>
                                 <li id="account-statement-menu"><a id="account-statement" href="" class="btn btn-link"><i class="dripicons-document"></i> {{__('db.Statement')}}</a></li>
                                 <li class="divider"></li>
                                 {{ Form::open(['route' => ['accounts.destroy', $account->id], 'method' => 'DELETE'] ) }}
@@ -100,6 +112,7 @@
                         <label>{{__('db.name')}} *</label>
                         <input type="text" name="name" required class="form-control">
                     </div>
+                    @include('backend.account._kg_fields', ['prefix' => 'edit'])
                     <div class="form-group">
                         <label>{{__('db.Initial Balance')}}</label>
                         <input type="number" name="initial_balance" step="any" class="form-control">
@@ -127,6 +140,10 @@
     $("ul#account #account-list-menu").addClass("active");
 
     $('.edit-btn').on('click', function() {
+        var kgBtn = $(this);
+        $('#editModal select[name="type"]').val(kgBtn.data('type') || 'Bank Account').trigger('change');
+        $('#editModal select[name="warehouse_id"]').val(kgBtn.data('warehouse_id') || '');
+        $('#editModal select[name="owner_user_id"]').val(kgBtn.data('owner_user_id') || '');
         $("#editModal input[name='account_no']").val( $(this).data('account_no') );
         $("#editModal input[name='name']").val( $(this).data('name') );
         $("#editModal input[name='initial_balance']").val( $(this).data('initial_balance') );

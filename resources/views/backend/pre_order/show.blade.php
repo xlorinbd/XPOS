@@ -7,9 +7,9 @@
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header d-flex align-items-center justify-content-between">
-                        <h4>Pre-Order Details: #{{ $preOrder->order_reference }}</h4>
+                        <h4>{{ $preOrder->kind_label }}: {{ $preOrder->order_no }}</h4>
                         <a href="{{ route('pre_orders.index') }}" class="btn btn-default btn-sm">
-                            <i class="dripicons-arrow-left"></i> Back to Pre-Orders
+                            <i class="dripicons-arrow-left"></i> Back to list
                         </a>
                     </div>
                     <div class="card-body">
@@ -96,21 +96,36 @@
                                     <tbody>
                                         <tr>
                                             <td style="width:40%;"><strong>Agreed Price:</strong></td>
-                                            <td><strong>{{ number_format($preOrder->price, 2) }}</strong></td>
+                                            <td><strong>{{ amount_format($preOrder->price) }}</strong></td>
                                         </tr>
                                         <tr>
                                             <td><strong>Advance Paid:</strong></td>
-                                            <td><span class="text-success">{{ number_format($preOrder->advance_amount, 2) }}</span></td>
+                                            <td><span class="text-success">{{ amount_format($preOrder->advance_amount) }}</span></td>
                                         </tr>
+                                        @if($preOrder->advance_refund_amount > 0)
+                                        <tr>
+                                            <td><strong>Advance refunded:</strong></td>
+                                            <td>{{ amount_format($preOrder->advance_refund_amount) }} <small class="text-muted">({{ $preOrder->advance_refund_note }})</small></td>
+                                        </tr>
+                                        @endif
+                                        @if($preOrder->border_price_reason)
+                                        <tr>
+                                            <td><strong>Below border price:</strong></td>
+                                            <td>{{ $preOrder->border_price_reason }}</td>
+                                        </tr>
+                                        @endif
                                         <tr>
                                             <td><strong>Remaining Due:</strong></td>
-                                            <td><span class="text-danger font-weight-bold">{{ number_format(max(0, $preOrder->price - $preOrder->advance_amount), 2) }}</span></td>
+                                            <td><span class="text-danger font-weight-bold">{{ amount_format(max(0, $preOrder->price - $preOrder->advance_amount)) }}</span></td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
 
+                        @if($preOrder->status === 'cancelled' && $preOrder->cancel_reason)
+                        <div class="alert alert-danger mt-3 mb-0"><strong>Cancelled:</strong> {{ $preOrder->cancel_reason }}</div>
+                        @endif
                         @if($preOrder->notes)
                         <div class="alert alert-secondary mt-3 mb-0">
                             <strong>Order Notes:</strong> {{ $preOrder->notes }}

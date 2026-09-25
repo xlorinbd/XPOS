@@ -149,6 +149,15 @@
                                 <div class="row mt-3">
                                     <div class="col-md-4">
                                         <div class="form-group">
+                                            <label>Settlement with supplier</label>
+                                            <select class="form-control" name="refund_type" id="refund_type">
+                                                <option value="refund">Money back from supplier</option>
+                                                <option value="credit">Supplier credit (no money now)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4" id="refund-account-group">
+                                        <div class="form-group">
                                             <label>{{__('db.Account')}}</label>
                                             <select class="form-control" name="account_id">
                                                 @foreach($lims_account_list as $account)
@@ -246,6 +255,7 @@
 
 @push('scripts')
 <script type="text/javascript">
+    $('#refund_type').on('change', function () { $('#refund-account-group').toggle($(this).val() === 'refund'); });
 
     $('.payment-form').on('submit', function(e) {
         // Flag to track if any checkbox is checked

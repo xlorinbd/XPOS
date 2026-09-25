@@ -105,7 +105,9 @@ class UserController extends Controller
         $data['is_deleted'] = false;
         $data['password'] = bcrypt($data['password']);
         $data['phone'] = $data['phone_number'];
+        $data['warehouse_id'] = $this->firstBranchId($data);
         $user_data = User::create($data);
+        $this->syncBranches($user_data, $data);
         if($data['role_id'] == 5) {
             $data['user_id'] = $user_data->id;
             $data['name'] = $data['customer_name'];
@@ -124,7 +126,11 @@ class UserController extends Controller
             $lims_role_list = Roles::where('is_active', true)->get();
             $lims_biller_list = Biller::where('is_active', true)->get();
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();
-            return view('backend.user.edit', compact('lims_user_data', 'lims_role_list', 'lims_biller_list', 'lims_warehouse_list'));
+            $assigned_branch_ids = $lims_user_data->branches()->pluck('warehouses.id')->all();
+            if (empty($assigned_branch_ids) && $lims_user_data->warehouse_id) {
+                $assigned_branch_ids = [$lims_user_data->warehouse_id];
+            }
+            return view('backend.user.edit', compact('lims_user_data', 'lims_role_list', 'lims_biller_list', 'lims_warehouse_list', 'assigned_branch_ids'));
         }
         else
             return redirect()->back()->with('not_permitted', __('db.Sorry! You are not allowed to access this module'));
@@ -157,10 +163,48 @@ class UserController extends Controller
         if(!empty($request['password']))
             $input['password'] = bcrypt($request['password']);
         $lims_user_data = User::find($id);
+        $input['warehouse_id'] = $this->firstBranchId($input, $lims_user_data->warehouse_id);
         $lims_user_data->update($input);
+        $this->syncBranches($lims_user_data, $input);
 
         cache()->forget('user_role');
         return redirect('user')->with('message2', __('db.Data updated successfullly'));
+    }
+
+    private function branchIds(array $data): array
+    {
+        $ids = $data['warehouse_ids'] ?? [];
+        if (empty($ids) && !empty($data['warehouse_id'])) {
+            $ids = [$data['warehouse_id']];
+        }
+        return array_values(array_unique(array_map('intval', array_filter((array) $ids))));
+    }
+
+    private function firstBranchId(array $data, $current = null)
+    {
+        $ids = $this->branchIds($data);
+        if (empty($ids)) {
+            return null;
+        }
+        return ($current && in_array((int) $current, $ids, true)) ? (int) $current : $ids[0];
+    }
+
+    private function syncBranches(User $user, array $data): void
+    {
+        $user->branches()->sync($this->branchIds($data));
+    }
+
+    public function switchBranch(Request $request)
+    {
+        $request->validate(['warehouse_id' => 'required|integer']);
+        $user = Auth::user();
+        $allowed = $user->branches()->pluck('warehouses.id')->all();
+        if (!in_array((int) $request->warehouse_id, $allowed, true)) {
+            return redirect()->back()->with('not_permitted', 'You are not assigned to that branch.');
+        }
+        $user->update(['warehouse_id' => (int) $request->warehouse_id]);
+        cache()->forget('user_role');
+        return redirect()->back()->with('message', 'Branch switched.');
     }
 
     public function toggleStatus(Request $request)

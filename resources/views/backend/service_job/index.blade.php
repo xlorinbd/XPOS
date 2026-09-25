@@ -98,7 +98,7 @@
                                         <span class="badge badge-secondary">{{ __('db.Paid Service') }}</span>
                                     @endif
                                 </td>
-                                <td>{{ number_format($job->total_cost, 2) }}</td>
+                                <td>{{ amount_format($job->total_cost) }}</td>
                                 <td>
                                     <span class="badge {{ $statusBadge }}">
                                         {{ str_replace('_', ' ', $job->status) }}

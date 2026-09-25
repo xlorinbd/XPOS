@@ -871,6 +871,18 @@
 						                <span>
 						                    <div aria-checked="false" aria-disabled="false">
 								                <div class="checkbox">
+							                    	@if(in_array("transfer-accept", $all_permission))
+							                    	<input type="checkbox" value="1" id="transfer-accept" name="transfer-accept" checked>
+							                    	@else
+							                    	<input type="checkbox" value="1" id="transfer-accept" name="transfer-accept">
+							                    	@endif
+								                    <label for="transfer-accept" class="padding05">Accept / reject cash transfers &amp; refunds &nbsp;&nbsp;</label>
+								                </div>
+								            </div>
+						                </span>
+						                <span>
+						                    <div aria-checked="false" aria-disabled="false">
+								                <div class="checkbox">
 							                    	@if(in_array("balance-sheet", $all_permission))
 							                    	<input type="checkbox" value="1" id="balance-sheet" name="balance-sheet" checked>
 							                    	@else
@@ -1797,6 +1809,18 @@
 							                    	<input type="checkbox" value="1" id="today_profit" name="today_profit">
 							                    	@endif
 								                    <label for="today_profit" class="padding05">{{__('db.Today Profit')}} &nbsp;&nbsp;</label>
+								                </div>
+								            </div>
+						                </span>
+						                <span>
+						                    <div aria-checked="false" aria-disabled="false">
+								                <div class="checkbox">
+							                    	@if(in_array("view-cost-profit", $all_permission))
+							                    	<input type="checkbox" value="1" id="view-cost-profit" name="view-cost-profit" checked>
+							                    	@else
+							                    	<input type="checkbox" value="1" id="view-cost-profit" name="view-cost-profit">
+							                    	@endif
+								                    <label for="view-cost-profit" class="padding05">Purchase Price &amp; Profit (cost visibility) &nbsp;&nbsp;</label>
 								                </div>
 								            </div>
 						                </span>

@@ -455,7 +455,7 @@ class SaleController extends Controller
                 $payments = Payment::where('sale_id', $sale->id)->select('amount','paying_method')->get();
                 $paymentMethods = $payments->map(function ($payment) use ($sale) {
                     return ucfirst($payment->paying_method ?? '') .
-                        '(' . number_format($payment->amount / $sale->exchange_rate, config('decimal')) . ')';
+                        '(' . amount_format($payment->amount / $sale->exchange_rate) . ')';
                 })->implode(', ');
 
                 $nestedData['payment_method'] = $paymentMethods;
@@ -497,11 +497,11 @@ class SaleController extends Controller
 
                 // Financial amounts
                 $returned_amount = DB::table('returns')->where('sale_id', $sale->id)->sum('grand_total');
-                $nestedData['grand_total'] = number_format($sale->grand_total / $sale->exchange_rate, config('decimal'));
-                $nestedData['returned_amount'] = number_format($returned_amount / $sale->exchange_rate, config('decimal'));
-                $nestedData['paid_amount'] = number_format($sale->paid_amount / $sale->exchange_rate, config('decimal'));
+                $nestedData['grand_total'] = amount_format($sale->grand_total / $sale->exchange_rate);
+                $nestedData['returned_amount'] = amount_format($returned_amount / $sale->exchange_rate);
+                $nestedData['paid_amount'] = amount_format($sale->paid_amount / $sale->exchange_rate);
                 // Calculation for due
-                $nestedData['due'] = number_format(($sale->grand_total - $returned_amount - $sale->paid_amount) / $sale->exchange_rate, config('decimal'));
+                $nestedData['due'] = amount_format(($sale->grand_total - $returned_amount - $sale->paid_amount) / $sale->exchange_rate);
 
                 // Custom fields data
                 foreach($field_names as $field_name) {
@@ -659,7 +659,7 @@ class SaleController extends Controller
             $custom_fields = CustomField::where('belongs_to', 'sale')->get();
             $lims_customer_group_all = CustomerGroup::where('is_active', true)->get();
 
-            $lims_account_list = Account::select('id', 'name','is_default','is_active')->where('is_active', true)->get();
+            $lims_account_list = Account::select('id', 'name','is_default','is_active','type','warehouse_id')->where('is_active', true)->get();
 
             if(cache()->has('general_setting'))
             {
@@ -694,21 +694,34 @@ class SaleController extends Controller
 
         // Khan Gadget POS: Live Safeguards & Pre-Transaction Validations
         $isAjax = ($request->ajax() || request()->ajax() || !empty($data['pos']));
+
+        // A sale saved offline is sent again when the internet returns. If the first try had already reached the
+        // server, answer with that sale instead of creating a second one.
+        if (!empty($data['client_token'])) {
+            $already = Sale::where('client_token', $data['client_token'])->first();
+            if ($already) {
+                return $isAjax ? response()->json($already->id) : redirect('sales')->with('message', 'Sale already saved.');
+            }
+        }
         $product_ids = $data['product_id'] ?? [];
         $net_unit_prices = $data['net_unit_price'] ?? [];
         $imei_numbers = $data['imei_number'] ?? [];
 
-        // 1. Border floor price validation
-        foreach ($product_ids as $idx => $pid) {
-            $pModel = Product::find($pid);
-            if ($pModel && $pModel->last_border_price && (float)$pModel->last_border_price > 0) {
-                $unitPrice = (float)($net_unit_prices[$idx] ?? 0);
-                if ($unitPrice < (float)$pModel->last_border_price) {
-                    $msg = "Sale price (" . number_format($unitPrice, 2) . ") for '{$pModel->name}' cannot be below minimum border floor price (" . number_format($pModel->last_border_price, 2) . "). Checkout aborted.";
-                    return $isAjax
-                        ? response()->json(['error' => $msg], 422)
-                        : redirect()->back()->with('not_permitted', $msg);
-                }
+        // 1. Border price: selling below it needs a reason (warning, not a block)
+        [$borderReason, $borderResponse] = \App\Services\BorderPrice::check($product_ids, $net_unit_prices, $data['border_price_reason'] ?? null);
+        if ($borderResponse) {
+            return $isAjax ? $borderResponse : redirect()->back()->withInput()->with('not_permitted', $borderResponse->getData()->error);
+        }
+        $data['border_price_reason'] = $borderReason;
+
+        // 1b. Every payment line may name its own account (split payment): only company accounts and this branch's accounts
+        $payAccountIds = array_filter((array) ($data['pay_account_id'] ?? []));
+        foreach ($payAccountIds as $accId) {
+            $acc = Account::where('is_active', true)->find($accId);
+            $ok = $acc && $acc->kind !== 'staff' && (empty($acc->warehouse_id) || $acc->warehouse_id == ($data['warehouse_id'] ?? null));
+            if (!$ok) {
+                $msg = 'The selected payment account cannot be used for this branch.';
+                return $isAjax ? response()->json(['error' => $msg], 422) : redirect()->back()->with('not_permitted', $msg);
             }
         }
 
@@ -1189,6 +1202,7 @@ class SaleController extends Controller
                 $product_sale['tax_rate'] = $tax_rate[$i];
                 $product_sale['tax'] = $tax[$i];
                 $product_sale['total'] = $mail_data['total'][$i] = $total[$i];
+                $product_sale['warranty_months'] = (isset($data['warranty_months'][$i]) && $data['warranty_months'][$i] !== '') ? (int) $data['warranty_months'][$i] : null;
 
                 if(cache()->has('general_setting'))
                 {
@@ -1304,7 +1318,14 @@ class SaleController extends Controller
                         if($cash_register_data)
                             $lims_payment_data->cash_register_id = $cash_register_data->id;
                         $lims_account_data = Account::where('is_default', true)->first();
-                        if(!empty($data['account_id']) && $data['account_id'] != 0)
+                        $rowAccount = !empty($data['pay_account_id'][$key]) ? Account::find($data['pay_account_id'][$key]) : null;
+                        if($rowAccount) {
+                            $lims_payment_data->account_id = $rowAccount->id;
+                            // card / gateway money only reaches the account once the settlement is confirmed
+                            if($rowAccount->kind === 'gateway')
+                                $lims_payment_data->confirm_status = 'pending';
+                        }
+                        elseif(!empty($data['account_id']) && $data['account_id'] != 0)
                             $lims_payment_data->account_id = $data['account_id'];
                         else
                             $lims_payment_data->account_id = $lims_account_data->id;
@@ -1384,6 +1405,20 @@ class SaleController extends Controller
             return $isAjax
                 ? response()->json(['error' => 'Checkout failed: ' . $e->getMessage()], 422)
                 : redirect()->back()->with('not_permitted', 'Checkout failed: ' . $e->getMessage());
+        }
+
+        // tell the managers and the admin about a finished sale (opens the invoice); card / gateway money waits for confirmation
+        if (($data['sale_status'] ?? 1) == 1) {
+            $kgWh = \App\Models\Warehouse::find($lims_sale_data->warehouse_id);
+            \App\Services\KgNotifier::toRoles(['Manager', 'Admin'],
+                'Sale ' . $lims_sale_data->reference_no . ': ' . money($lims_sale_data->grand_total) . ' at ' . ($kgWh->name ?? 'a branch') . ' by ' . Auth::user()->name . '.',
+                '/sales/gen_invoice/' . $lims_sale_data->id, 'sale', null, Auth::id());
+            $kgPending = (float) Payment::where('sale_id', $lims_sale_data->id)->where('confirm_status', 'pending')->sum('amount');
+            if ($kgPending > 0) {
+                \App\Services\KgNotifier::toRoles(['Accountant', 'Manager', 'Admin'],
+                    'Gateway payment of ' . money($kgPending) . ' (sale ' . $lims_sale_data->reference_no . ') is waiting for confirmation.',
+                    '/gateway-payments', 'request', null, Auth::id());
+            }
         }
 
         // Post-commit slow operations (Email sending executed outside transaction)
@@ -2090,7 +2125,7 @@ class SaleController extends Controller
 
             $variables = ['currency_list','role','all_permission', 'lims_customer_list', 'lims_customer_group_all', 'lims_warehouse_list', 'lims_reward_point_setting_data', 'lims_tax_list', 'lims_biller_list', 'lims_pos_setting_data', 'options', 'lims_brand_list', 'lims_category_list', 'lims_table_list', 'lims_coupon_list', 'flag', 'numberOfInvoice', 'custom_fields', 'lims_account_list'];
 
-            $lims_account_list = Account::select('id', 'name','is_default')->where('is_active', true)->get();
+            $lims_account_list = Account::select('id', 'name','is_default','type','warehouse_id')->where('is_active', true)->get();
 
             if(!empty($id)){
                 $lims_sale_data = Sale::find($id);
@@ -2540,7 +2575,7 @@ class SaleController extends Controller
             $product->is_variant, //14
             $qty, //15
             $product->wholesale_price, //16
-            $product->cost, //17
+            can_view_cost() ? $product->cost : 0, //17
             $request->data['imei'], // IMEI number //18
             $request->data['qty'], // warehouse qty //19
             $product->type, //20
@@ -2580,6 +2615,17 @@ class SaleController extends Controller
         $productArray[26] = $product->product_condition ?? ''; // 26: condition (used/new/refurbished)
         $productArray[27] = $available_serials; // 27: list of available serials in this warehouse
         $productArray[28] = $request->data['imei'] ?? ''; // 28: selected serial (if matched/scanned)
+        // 29: the product's own warranty in months, offered as the default the salesman can change
+        $kgWarranty = DB::table('products')->where('id', $product->id)->first(['warranty', 'warranty_type']);
+        $kgMonths = 0;
+        if ($kgWarranty && $kgWarranty->warranty) {
+            $kgMonths = match ($kgWarranty->warranty_type) {
+                'days' => (int) ceil($kgWarranty->warranty / 30),
+                'years' => (int) $kgWarranty->warranty * 12,
+                default => (int) $kgWarranty->warranty,
+            };
+        }
+        $productArray[29] = $kgMonths;
 
         return response()->json($productArray);
     }
@@ -3615,10 +3661,10 @@ class SaleController extends Controller
                 }
             }
 
-            $qtyline = $product_sale_data->qty. 'x'. number_format((float) ($product_sale_data->total / $product_sale_data->qty), $general_setting->decimal, '.', ',');
+            $qtyline = $product_sale_data->qty. 'x'. amount_format((float) ($product_sale_data->total / $product_sale_data->qty));
 
             if (!empty($topping_prices)) {
-                $qtyline .= '+'. implode(' + ', array_map(fn($price) => number_format($price, $general_setting->decimal, '.', ','), $topping_prices));
+                $qtyline .= '+'. implode(' + ', array_map(fn($price) => amount_format($price), $topping_prices));
             }
 
             $tax_info = '';
@@ -3633,44 +3679,44 @@ class SaleController extends Controller
                     'custom_fields'      => $custom_fields,
                     'qtyline'      => $qtyline,
                     'tax_info'      => $tax_info,
-                    'subtotal' => number_format($subtotal, $general_setting->decimal, '.', ','),
+                    'subtotal' => amount_format($subtotal),
                 ];
             }
         }
 
-        $data['total'] = number_format((float) $lims_sale_data->total_price, $general_setting->decimal, '.', ',');
+        $data['total'] = amount_format((float) $lims_sale_data->total_price);
 
         if ($general_setting->invoice_format == 'gst' && $general_setting->state == 1) {
-            $data['igst'] = number_format((float) $total_product_tax, $general_setting->decimal, '.', ',');
+            $data['igst'] = amount_format((float) $total_product_tax);
         }
         else if ($general_setting->invoice_format == 'gst' && $general_setting->state == 2) {
-            $data['sgstandcgst'] = number_format((float) $total_product_tax/2, $general_setting->decimal, '.', ',');
+            $data['sgstandcgst'] = amount_format((float) $total_product_tax/2);
         }
 
         if ($lims_sale_data->order_tax) {
-            $data['order_tax']   = number_format((float) $lims_sale_data->order_tax, $general_setting->decimal, '.', ',');
+            $data['order_tax']   = amount_format((float) $lims_sale_data->order_tax);
         }
 
         if ($lims_sale_data->order_discount) {
-            $data['order_discount']   = number_format((float) $lims_sale_data->order_discount, $general_setting->decimal, '.', ',');
+            $data['order_discount']   = amount_format((float) $lims_sale_data->order_discount);
         }
 
         if ($lims_sale_data->coupon_discount) {
-            $data['coupon_discount']   = number_format((float) $lims_sale_data->coupon_discount, $general_setting->decimal, '.', ',');
+            $data['coupon_discount']   = amount_format((float) $lims_sale_data->coupon_discount);
         }
 
         if ($lims_sale_data->shipping_cost) {
-            $data['shipping_cost']   = number_format((float) $lims_sale_data->shipping_cost, $general_setting->decimal, '.', ',');
+            $data['shipping_cost']   = amount_format((float) $lims_sale_data->shipping_cost);
         }
         // ✅ Totals
-        $data['grand_total'] = number_format((float) $lims_sale_data->grand_total, $general_setting->decimal, '.', ',');
+        $data['grand_total'] = amount_format((float) $lims_sale_data->grand_total);
 
         if ($lims_sale_data->grand_total - $lims_sale_data->paid_amount > 0) {
-            $data['due'] = number_format((float) ($lims_sale_data->grand_total - $lims_sale_data->paid_amount), $general_setting->decimal, '.', ',');
+            $data['due'] = amount_format((float) ($lims_sale_data->grand_total - $lims_sale_data->paid_amount));
         }
         if ($totalDue && isset($show->hide_total_due)) {
             if (!$show->hide_total_due) {
-                $data['total_due'] = number_format($totalDue, $general_setting->decimal, '.', ',');
+                $data['total_due'] = amount_format($totalDue);
             }
         }
 
@@ -3687,18 +3733,8 @@ class SaleController extends Controller
             foreach ($lims_payment_data as $payment_data) {
                 $data['payments'][] = [
                     'paid_by' => $payment_data->paying_method,
-                    'amount'  => number_format(
-                        (float) $payment_data->amount,
-                        $general_setting->decimal,
-                        '.',
-                        ','
-                    ),
-                    'change'  => number_format(
-                        (float) $payment_data->change,
-                        $general_setting->decimal,
-                        '.',
-                        ','
-                    ),
+                    'amount'  => amount_format((float) $payment_data->amount),
+                    'change'  => amount_format((float) $payment_data->change),
                 ];
             }
         }
@@ -3878,7 +3914,13 @@ class SaleController extends Controller
                     $sale_data->product_condition = $product->product_condition;
                 }
 
-                if (isset($product->warranty)) {
+                if ($sale_data->warranty_months !== null) {
+                    // the salesman set the warranty for this sale
+                    if ((int) $sale_data->warranty_months > 0) {
+                        $sale_data->warranty_duration = $sale_data->warranty_months . ' ' . ($sale_data->warranty_months == 1 ? 'month' : 'months');
+                        $sale_data->warranty_end = (new DateTime($lims_sale_data->created_at))->modify('+' . (int) $sale_data->warranty_months . ' months')->format('Y-m-d');
+                    }
+                } elseif (isset($product->warranty)) {
                     if ($product->warranty === 1) {
 
                     }
@@ -3933,7 +3975,7 @@ class SaleController extends Controller
                 }
             }
             elseif($invoice_settings->size == 'a4') {
-                    return view('backend.setting.invoice_setting.a4', compact('invoice_settings','general_setting','lims_sale_data', 'currency_code', 'lims_product_sale_data', 'lims_biller_data', 'lims_warehouse_data', 'lims_customer_data', 'lims_payment_data', 'numberInWords', 'paid_by_info', 'change_amount', 'sale_custom_fields', 'customer_custom_fields', 'product_custom_fields', 'qrText', 'totalDue', 'lims_bill_by'));
+                    return view('backend.sale.kg_invoice', compact('invoice_settings','general_setting','lims_sale_data', 'currency_code', 'lims_product_sale_data', 'lims_biller_data', 'lims_warehouse_data', 'lims_customer_data', 'lims_payment_data', 'numberInWords', 'paid_by_info', 'change_amount', 'sale_custom_fields', 'customer_custom_fields', 'product_custom_fields', 'qrText', 'totalDue', 'lims_bill_by'));
             }elseif($invoice_settings->size == '58mm'){
                 return view('backend.setting.invoice_setting.58mm', compact('invoice_settings','general_setting','lims_sale_data', 'currency_code', 'lims_product_sale_data', 'lims_biller_data', 'lims_warehouse_data', 'lims_customer_data', 'lims_payment_data', 'numberInWords', 'sale_custom_fields', 'customer_custom_fields', 'product_custom_fields', 'qrText', 'totalDue', 'lims_bill_by'));
             }elseif($invoice_settings->size == '80mm'){
@@ -4683,8 +4725,8 @@ class SaleController extends Controller
             $profit += $product_sale->sold_amount - $purchased_amount;
         }
 
-        $data['product_revenue'] = number_format($product_revenue, config('decimal'));
-        $data['product_cost'] = number_format($product_cost, config('decimal'));
+        $data['product_revenue'] = amount_format($product_revenue);
+        $data['product_cost'] = amount_format($product_cost);
 
         // 🔹 Expenses
         if ($warehouse_id == 0) {
@@ -4697,7 +4739,7 @@ class SaleController extends Controller
         }
 
         $data['profit'] = $profit - $data['expense_amount'];
-        $data['profit'] = number_format($data['profit'], config('decimal'));
+        $data['profit'] = amount_format($data['profit']);
 
         return $data;
     }
@@ -5781,7 +5823,7 @@ class SaleController extends Controller
 
                 $paymentStatus = $sale->paid_amount >= $sale->grand_total ? 'Paid' : ($sale->paid_amount > 0 ? 'Partial' : 'Due');
 
-                $paymentDue = number_format($sale->grand_total - $sale->paid_amount, 2);
+                $paymentDue = amount_format($sale->grand_total - $sale->paid_amount);
 
                 $warehouseName = $sale->warehouse_id ? optional(Warehouse::find($sale->warehouse_id))->name : '-';
                 $customer = $sale->customer;
@@ -5793,8 +5835,8 @@ class SaleController extends Controller
                     'warehouse' => $warehouseName,
                     'sale_status' => $saleStatus,
                     'payment_status' => $paymentStatus,
-                    'grand_total' => number_format($sale->grand_total, 2),
-                    'paid_amount' => number_format($sale->paid_amount, 2),
+                    'grand_total' => amount_format($sale->grand_total),
+                    'paid_amount' => amount_format($sale->paid_amount),
                     'payment_due' => $paymentDue,
                     'note' => $sale->note,
                     'currency' => $sale->currency ?? null,

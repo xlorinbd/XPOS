@@ -12,6 +12,7 @@
 .selected_items .remove_item, .selected_addons .remove_item {position: absolute;right: 20px;top:20px};
 .delVarOption{display: flex;flex-direction: column;align-items: center;}
 </style>
+
 @endpush
 @endif
 
@@ -101,7 +102,8 @@
                                                 <div class="col-md-3">
                                                     <div class="form-group">
                                                         <label>Processor</label>
-                                                        <input type="text" name="processor" value="{{$lims_product_data->processor}}" class="form-control" placeholder="e.g. Core i7 12th Gen, Ryzen 7">
+                                                        <input type="text" name="processor" value="{{$lims_product_data->processor}}" list="kg-processor-list" autocomplete="off" class="form-control" placeholder="e.g. Ryzen 5 7535HS (auto-formatted)">
+                                                        <datalist id="kg-processor-list">@foreach(\App\Models\Lookup::ofType('processor')->active()->orderBy('name')->pluck('name') as $kgProc)<option value="{{ $kgProc }}">@endforeach</datalist>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-3">
@@ -130,8 +132,31 @@
                                                 </div>
                                                 <div class="col-md-3">
                                                     <div class="form-group">
+                                                        <label>Remarks</label>
+                                                        <input type="text" name="remarks" value="{{$lims_product_data->remarks}}" class="form-control" placeholder="Any extra note about the product">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
                                                         <label>Adapter Condition</label>
                                                         <input type="text" name="adapter_condition" value="{{$lims_product_data->adapter_condition}}" class="form-control" placeholder="e.g. Original 65W Type-C">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-group">
+                                                        <label>Charger / Adapter model</label>
+                                                        @php $kgChargerModels = \App\Models\Lookup::ofType('charger_model')->active()->orderBy('name')->get(); @endphp
+                                                        <select name="adapter_model_id" class="form-control selectpicker" data-live-search="true">
+                                                            <option value="">None</option>
+                                                            @foreach($kgChargerModels as $cm)
+                                                            <option value="{{ $cm->id }}" {{ $lims_product_data->adapter_model_id == $cm->id ? 'selected' : '' }}>{{ $cm->name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                        <div class="checkbox mt-1">
+                                                            <input type="checkbox" name="is_adapter_item" id="is_adapter_item" value="1" {{ !empty($lims_product_data->is_adapter_item) ? 'checked' : '' }}>
+                                                            <label for="is_adapter_item">This product is a charger / adapter</label>
+                                                        </div>
+                                                        <small class="text-muted">Laptops: pick the charger they use. Charger products: pick their own model and tick the box.</small>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-3">
@@ -142,7 +167,7 @@
                                                             <option value="used" {{$lims_product_data->product_condition == 'used' ? 'selected' : ''}}>Used</option>
                                                             <option value="open_box" {{$lims_product_data->product_condition == 'open_box' ? 'selected' : ''}}>Open Box</option>
                                                             <option value="brand_new" {{$lims_product_data->product_condition == 'brand_new' ? 'selected' : ''}}>Brand New (Intact)</option>
-                                                            <option value="box_opened" {{$lims_product_data->product_condition == 'box_opened' ? 'selected' : ''}}>Box Opened (Brand New Just Box Open)</option>
+                                                            <option value="box_opened" {{$lims_product_data->product_condition == 'box_opened' ? 'selected' : ''}}>Box Opend (Brand New Just Box Open)</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -151,6 +176,7 @@
                                             <hr class="my-2">
 
                                             {{-- Existing Serials List --}}
+                                            <datalist id="kg-condition-tags">@foreach(\App\Models\Lookup::ofType('condition_tag')->active()->orderBy('name')->pluck('name') as $kgTag)<option value="{{ $kgTag }}">@endforeach</datalist>
                                             @if(isset($product_serials) && $product_serials->count() > 0)
                                             <div class="row mt-2">
                                                 <div class="col-md-12">
@@ -162,6 +188,7 @@
                                                                     <th>Serial Number</th>
                                                                     <th>Location (Warehouse)</th>
                                                                     <th>Detailed Condition</th>
+                                                                    @if(can_view_cost())<th>Cost</th>@endif
                                                                     <th>Status</th>
                                                                     <th>Added At</th>
                                                                 </tr>
@@ -171,7 +198,19 @@
                                                                 <tr>
                                                                     <td><code>{{$ps->serial_number}}</code></td>
                                                                     <td>{{$ps->warehouse->name ?? 'N/A'}}</td>
-                                                                    <td>{{$ps->detailed_condition ?: '-'}}</td>
+                                                                    <td style="min-width:220px">
+                                                                        <div class="input-group input-group-sm">
+                                                                            <input type="text" class="form-control serial-condition-input" list="kg-condition-tags" value="{{ $ps->detailed_condition }}" placeholder="Detailed condition" data-id="{{ $ps->id }}">
+                                                                            <div class="input-group-append"><button type="button" class="btn btn-outline-secondary serial-condition-save" data-id="{{ $ps->id }}" title="Save"><i class="dripicons-checkmark"></i></button></div>
+                                                                        </div>
+                                                                    </td>
+                                                                    @if(can_view_cost())
+                                                                    <td style="min-width:170px" class="serial-cost-cell" data-id="{{ $ps->id }}">
+                                                                        <strong class="serial-cost-total">{{ money($ps->total_cost) }}</strong>
+                                                                        <small class="text-muted d-block">buy {{ money($ps->purchase_cost) }} + landed {{ money($ps->landed_cost) }} + extra <span class="serial-cost-extra">{{ money($ps->extra_cost) }}</span></small>
+                                                                        <button type="button" class="btn btn-link btn-sm p-0 serial-cost-adjust" data-id="{{ $ps->id }}" data-serial="{{ $ps->serial_number }}">Adjust cost</button>
+                                                                    </td>
+                                                                    @endif
                                                                     <td>
                                                                         @if($ps->status == 'available')
                                                                             <span class="badge badge-success">Available</span>
@@ -2221,5 +2260,43 @@
     });
 
 
+</script>
+<script>
+    $(document).on('blur', 'input[name="processor"]', function () {
+        var input = $(this), raw = $.trim(input.val());
+        if (!raw) { return; }
+        $.post('{{ route("products.normalizeProcessor") }}', { _token: $('meta[name="csrf-token"]').attr('content'), values: [raw] }, function (res) {
+            if (res[raw] && res[raw].normalized) { input.val(res[raw].normalized); }
+        });
+    });
+</script>
+<script>
+    $(document).on('click', '.serial-cost-adjust', function () {
+        var btn = $(this), id = btn.data('id');
+        var amount = prompt('Serial ' + btn.data('serial') + '\nAmount to ADD to this unit\'s cost (use a minus sign to take off, e.g. 3500 for a repair, -2000 for a removed accessory):');
+        if (amount === null || $.trim(amount) === '' || isNaN(parseFloat(amount))) { return; }
+        var reason = prompt('Reason (repair, RAM/SSD upgrade, accessory added or removed ...):');
+        if (!reason) { return; }
+        $.post('{{ url("product-serials") }}/' + id + '/cost-adjust', { _token: $('meta[name="csrf-token"]').attr('content'), amount: amount, reason: reason })
+            .done(function (r) {
+                var cell = btn.closest('.serial-cost-cell');
+                cell.find('.serial-cost-total').text(kgMoney(r.total_cost));
+                cell.find('.serial-cost-extra').text(kgMoney(r.extra_cost));
+            })
+            .fail(function (x) { alert((x.responseJSON && (x.responseJSON.error || x.responseJSON.message)) || 'Could not change the cost.'); });
+    });
+</script>
+<script>
+    $(document).on('click', '.serial-condition-save', function () {
+        var btn = $(this), id = btn.data('id'), input = btn.closest('tr').find('.serial-condition-input');
+        btn.prop('disabled', true);
+        $.ajax({
+            url: '{{ url("product-serials") }}/' + id + '/condition', type: 'POST',
+            data: { _token: $('meta[name="csrf-token"]').attr('content'), _method: 'PUT', detailed_condition: input.val() },
+            success: function () { btn.html('<i class="dripicons-checkmark text-success"></i>'); },
+            error: function () { alert('Could not save the detailed condition.'); },
+            complete: function () { btn.prop('disabled', false); }
+        });
+    });
 </script>
 @endpush

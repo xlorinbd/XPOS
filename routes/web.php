@@ -22,6 +22,9 @@ use App\Http\Controllers\SaleController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\BrandController;
+use App\Http\Controllers\LookupController;
+use App\Http\Controllers\ShipmentController;
+use App\Http\Controllers\AdapterReportController;
 use App\Http\Controllers\TableController;
 use App\Http\Controllers\BillerController;
 use App\Http\Controllers\CouponController;
@@ -291,6 +294,28 @@ Route::group(['middleware' => ['common', 'auth', 'active']], function () {
         Route::get('brand/lims_brand_search', 'limsBrandSearch')->name('brand.search');
     });
     Route::resource('brand', BrandController::class);
+
+    Route::controller(LookupController::class)->group(function () {
+        Route::get('lookups/{type}', 'index')->name('lookups.index');
+        Route::post('lookups/{type}', 'store')->name('lookups.store');
+        Route::put('lookups/{type}/{id}', 'update')->name('lookups.update');
+        Route::delete('lookups/{type}/{id}', 'destroy')->name('lookups.destroy');
+        Route::get('lookup-suggest/{type}', 'suggest')->name('lookups.suggest');
+        Route::post('products/normalize-processor', 'normalizeProcessor')->name('products.normalizeProcessor');
+    });
+    Route::put('product-serials/{id}/condition', [LookupController::class, 'serialCondition'])->name('serials.condition');
+    Route::post('product-serials/{id}/cost-adjust', [\App\Http\Controllers\SerialCostController::class, 'adjust'])->name('serials.cost_adjust');
+    Route::controller(ShipmentController::class)->group(function () {
+        Route::get('shipments', 'index')->name('shipments.index');
+        Route::get('shipments/create', 'create')->name('shipments.create');
+        Route::post('shipments', 'store')->name('shipments.store');
+        Route::get('shipments/in-transit', 'inTransit')->name('shipments.inTransit');
+        Route::get('shipments/{id}', 'show')->name('shipments.show');
+        Route::post('shipments/{id}/receive', 'receive')->name('shipments.receive');
+        Route::post('shipments/{id}/finalize', 'finalize')->name('shipments.finalize');
+        Route::post('shipments/{id}/cancel', 'cancel')->name('shipments.cancel');
+    });
+    Route::get('report/charger-need-list', [AdapterReportController::class, 'chargerNeed'])->name('reports.chargerNeed');
 
 
     Route::controller(SupplierController::class)->group(function () {
@@ -673,6 +698,7 @@ Route::group(['middleware' => ['common', 'auth', 'active']], function () {
         Route::get('user/notification', 'notificationUsers')->name('user.notification');
         Route::get('user/all', 'allUsers')->name('user.all');
         Route::post('user/toggle-status', [UserController::class, 'toggleStatus'])->name('user.toggleStatus');
+        Route::post('user/switch-branch', 'switchBranch')->name('user.switchBranch');
 
     });
     Route::resource('user', UserController::class);
@@ -786,7 +812,45 @@ Route::group(['middleware' => ['common', 'auth', 'active']], function () {
     Route::resource('accounts', AccountsController::class);
 
 
-    Route::resource('money-transfers', MoneyTransferController::class);
+    Route::get('report/daily-account', [\App\Http\Controllers\DailyAccountController::class, 'index'])->name('report.daily_account');
+
+    Route::controller(\App\Http\Controllers\SalarySheetController::class)->group(function () {
+        Route::get('salary-sheet', 'index')->name('salary.index');
+        Route::post('salary-sheet/generate', 'generate')->name('salary.generate');
+        Route::post('salary-sheet/settings', 'saveSettings')->name('salary.settings');
+        Route::post('salary-sheet/{id}/save', 'update')->name('salary.update');
+        Route::post('salary-sheet/{id}/finalize', 'finalize')->name('salary.finalize');
+    });
+
+    Route::controller(\App\Http\Controllers\StaffLoanController::class)->group(function () {
+        Route::get('my-loan', 'mine')->name('loan.mine');
+        Route::post('my-loan/otp', 'sendOtp')->name('loan.otp');
+        Route::post('my-loan', 'apply')->name('loan.apply');
+        Route::get('staff-loans', 'index')->name('loan.manage');
+        Route::post('staff-loans/{id}/approve', 'approve')->name('loan.approve');
+        Route::post('staff-loans/{id}/reject', 'reject')->name('loan.reject');
+    });
+
+    Route::controller(\App\Http\Controllers\KgNotificationController::class)->group(function () {
+        Route::get('kg-notifications', 'index')->name('kg.notifications');
+        Route::get('kg-notifications/{id}/go', 'go')->name('kg.notifications.go');
+        Route::post('kg-notifications/read-all', 'readAll')->name('kg.notifications.readall');
+    });
+
+    Route::controller(\App\Http\Controllers\PaymentConfirmController::class)->group(function () {
+        Route::get('gateway-payments', 'index')->name('payments.pending');
+        Route::post('gateway-payments/{id}/confirm', 'confirm')->name('payments.confirm');
+    });
+
+    Route::controller(MoneyTransferController::class)->group(function () {
+        Route::get('money-transfers', 'index')->name('money-transfers.index');
+        Route::get('money-transfers/create', 'create')->name('money-transfers.create');
+        Route::post('money-transfers', 'store')->name('money-transfers.store');
+        Route::get('money-transfers/{id}', 'show')->name('money-transfers.show');
+        Route::post('money-transfers/{id}/respond', 'respond')->name('money-transfers.respond');
+        Route::post('money-transfers/{id}/refund', 'acceptRefund')->name('money-transfers.refund');
+        Route::post('money-transfers/{id}/cancel', 'cancel')->name('money-transfers.cancel');
+    });
 
 
     //HRM routes
@@ -912,9 +976,8 @@ Route::group(['middleware' => ['common', 'auth', 'active']], function () {
         Route::get('pre_orders/create', 'create')->name('pre_orders.create');
         Route::post('pre_orders', 'store')->name('pre_orders.store');
         Route::get('pre_orders/{id}', 'show')->name('pre_orders.show');
-        Route::post('pre_orders/{id}/dispatch', 'dispatch')->name('pre_orders.dispatch');
-        Route::post('pre_orders/{id}/receive', 'receive')->name('pre_orders.receive');
         Route::post('pre_orders/{id}/cancel', 'cancel')->name('pre_orders.cancel');
+        Route::post('pre_orders/{id}/change-source', 'changeSource')->name('pre_orders.change_source');
     });
 
     // =========================================================================

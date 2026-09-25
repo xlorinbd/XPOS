@@ -144,7 +144,7 @@ class ExpenseController extends Controller
                 $nestedData['reference_no'] = $expense->reference_no;
                 $nestedData['warehouse'] = $expense->warehouse->name;
                 $nestedData['expenseCategory'] = $expense->expense_category_id ==0 ? 'Employee Expense' :  $expense->expenseCategory->name;
-                $nestedData['amount'] = number_format($expense->amount, config('decimal'));
+                $nestedData['amount'] = amount_format($expense->amount);
                 $nestedData['note'] = $expense->note;
                 $nestedData['options'] = '<div class="btn-group">
                             <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">'.__("db.action").'

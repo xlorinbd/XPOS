@@ -1,6 +1,10 @@
 @extends('backend.layout.main')
 
 @section('content')
+@php
+    $kgAccountsJson = \App\Models\Account::where('is_active', true)->get(['id', 'name', 'type', 'warehouse_id'])->toJson();
+    $kgRole = (int) Auth::user()->role_id;
+@endphp
 @if(session()->has('message'))
   <div class="alert alert-success alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('message') }}</div>
 @endif
@@ -88,12 +92,13 @@
                                     default => 'badge-secondary'
                                 };
                                 $userWhId = Auth::user()->warehouse_id;
-                                $isSourceWh = ($userWhId == $po->from_warehouse_id) || (Auth::user()->role_id <= 2);
+                                $isSourceWh = (($userWhId == $po->from_warehouse_id) || (Auth::user()->role_id <= 2)) && $kgRole <= 3;
                                 $isDestWh = ($userWhId == $po->to_warehouse_id) || (Auth::user()->role_id <= 2);
                             @endphp
                             <tr>
                                 <td>
                                     <strong>{{ $po->order_no }}</strong>
+                                    <span class="badge badge-light border">{{ $po->kind_label }}</span>
                                     <small class="text-muted d-block">{{ $po->created_at->format('d M Y, h:i A') }}</small>
                                 </td>
                                 <td>
@@ -113,9 +118,9 @@
                                 <td>{{ $po->fromWarehouse ? $po->fromWarehouse->name : 'N/A' }}</td>
                                 <td>{{ $po->toWarehouse ? $po->toWarehouse->name : 'N/A' }}</td>
                                 <td>
-                                    <div><strong>Total:</strong> {{ number_format($po->price, 2) }}</div>
-                                    <small class="text-success d-block"><strong>Adv:</strong> {{ number_format($po->advance_amount, 2) }}</small>
-                                    <small class="text-danger d-block"><strong>Due:</strong> {{ number_format($due, 2) }}</small>
+                                    <div><strong>Total:</strong> {{ amount_format($po->price) }}</div>
+                                    <small class="text-success d-block"><strong>Adv:</strong> {{ amount_format($po->advance_amount) }}</small>
+                                    <small class="text-danger d-block"><strong>Due:</strong> {{ amount_format($due) }}</small>
                                 </td>
                                 <td>
                                     <span class="badge {{ $statusBadge }}">
@@ -135,7 +140,7 @@
                                                 </a>
                                             </li>
 
-                                            @if ($po->status === 'pending' && $isSourceWh)
+                                            @if ($po->kind !== 'pre_booked' && $po->status === 'pending' && $isSourceWh)
                                                 <li>
                                                     <button type="button" class="btn btn-link btn-update-status" data-id="{{ $po->id }}" data-status="confirmed" data-serial="{{ $po->serial_number }}">
                                                         <i class="dripicons-checkmark"></i> Confirm & Reserve Serial
@@ -143,7 +148,7 @@
                                                 </li>
                                             @endif
 
-                                            @if ($po->status === 'confirmed' && $isSourceWh)
+                                            @if ($po->kind !== 'pre_booked' && $po->status === 'confirmed' && $isSourceWh)
                                                 <li>
                                                     <button type="button" class="btn btn-link btn-update-status" data-id="{{ $po->id }}" data-status="processing">
                                                         <i class="fa fa-paper-plane"></i> Dispatch to Branch
@@ -151,7 +156,7 @@
                                                 </li>
                                             @endif
 
-                                            @if ($po->status === 'processing' && $isDestWh)
+                                            @if ($po->kind !== 'pre_booked' && $po->status === 'processing' && $isDestWh)
                                                 <li>
                                                     <button type="button" class="btn btn-link btn-update-status" data-id="{{ $po->id }}" data-status="ready">
                                                         <i class="dripicons-inbox"></i> Receive & Mark Ready
@@ -161,7 +166,7 @@
 
                                             @if ($po->status === 'ready' && $isDestWh)
                                                 <li>
-                                                    <button type="button" class="btn btn-link btn-convert-sale" data-id="{{ $po->id }}" data-orderno="{{ $po->order_no }}" data-price="{{ $po->price }}" data-advance="{{ $po->advance_amount }}" data-due="{{ $due }}">
+                                                    <button type="button" class="btn btn-link btn-convert-sale" data-towh="{{ $po->to_warehouse_id }}" data-id="{{ $po->id }}" data-orderno="{{ $po->order_no }}" data-price="{{ $po->price }}" data-advance="{{ $po->advance_amount }}" data-due="{{ $due }}">
                                                         <i class="dripicons-cart"></i> Deliver & Finalize Sale
                                                     </button>
                                                 </li>
@@ -175,11 +180,19 @@
                                                 </li>
                                             @endif
 
-                                            @if (!in_array($po->status, ['delivered', 'cancelled']))
+                                            @if ($kgRole <= 2 && $po->kind !== 'pre_booked' && in_array($po->status, ['pending', 'confirmed']))
+                                                <li>
+                                                    <button type="button" class="btn btn-link btn-change-source" data-id="{{ $po->id }}" data-orderno="{{ $po->order_no }}">
+                                                        <i class="dripicons-swap"></i> Change source branch
+                                                    </button>
+                                                </li>
+                                            @endif
+
+                                            @if ($kgRole <= 3 && !in_array($po->status, ['delivered', 'cancelled']))
                                                 <li class="divider"></li>
                                                 <li>
-                                                    <button type="button" class="btn btn-link text-danger btn-update-status" data-id="{{ $po->id }}" data-status="cancelled">
-                                                        <i class="dripicons-cross"></i> Cancel Pre-Order
+                                                    <button type="button" class="btn btn-link text-danger btn-cancel-po" data-id="{{ $po->id }}" data-orderno="{{ $po->order_no }}" data-advance="{{ $po->advance_amount }}" data-towh="{{ $po->to_warehouse_id }}">
+                                                        <i class="dripicons-cross"></i> Cancel {{ $po->kind_label }}
                                                     </button>
                                                 </li>
                                             @endif
@@ -287,7 +300,7 @@
 
                     <div class="form-group">
                         <label><strong>Destination Branch (Pickup Location) *</strong></label>
-                        <select name="to_warehouse_id" class="form-control selectpicker" required>
+                        <select name="to_warehouse_id" id="book_to_warehouse" class="form-control selectpicker" required>
                             @foreach ($warehouses as $w)
                                 <option value="{{ $w->id }}" {{ Auth::user()->warehouse_id == $w->id ? 'selected' : '' }}>{{ $w->name }}</option>
                             @endforeach
@@ -300,20 +313,27 @@
                             <input type="number" id="book_price" name="price" class="form-control" required min="0" step="any">
                         </div>
                         <div class="col-md-6 form-group">
-                            <label><strong>Advance Deposit</strong></label>
-                            <input type="number" name="advance_amount" class="form-control" value="0" min="0" step="any">
+                            <label><strong>Advance Deposit * (required)</strong></label>
+                            <input type="number" id="book_advance" name="advance_amount" class="form-control" min="1" step="any" required>
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label><strong>Advance Payment Method</strong></label>
-                        <select name="paying_method" class="form-control selectpicker">
-                            <option value="Cash">Cash</option>
-                            <option value="Bkash">Bkash / MFS</option>
-                            <option value="Card">Card</option>
-                            <option value="Bank">Bank Transfer</option>
-                        </select>
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label><strong>Advance Payment Method *</strong></label>
+                            <select name="paying_method" id="book_method" class="form-control">
+                                <option value="Cash">Cash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Mobile Banking">Mobile Banking</option>
+                                <option value="Card">Card</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label><strong>Goes into account</strong></label>
+                            <select name="advance_account_id" id="book_account" class="form-control"></select>
+                        </div>
                     </div>
+                    <small class="text-muted d-block mb-2" id="book_kind_hint"></small>
 
                     <div class="form-group">
                         <label><strong>Booking Notes / Remarks</strong></label>
@@ -371,6 +391,11 @@
                         </select>
                     </div>
 
+                    <div class="form-group">
+                        <label><strong>Goes into account</strong></label>
+                        <select id="convert_account" name="pay_account_id" class="form-control"></select>
+                    </div>
+
                     <div id="convertAlert" class="mt-3 d-none"></div>
                 </div>
                 <div class="modal-footer">
@@ -383,11 +408,87 @@
         </div>
     </div>
 </div>
+
+<!-- Modal 4: Cancel with advance refund decision -->
+<div id="cancelPreOrderModal" tabindex="-1" role="dialog" aria-hidden="true" class="modal fade text-left">
+    <div role="document" class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancel <span id="cancel_order_no"></span></h5>
+                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
+            </div>
+            <form id="cancelPreOrderForm" onsubmit="return false;">
+                <input type="hidden" id="cancel_pre_order_id">
+                <div class="modal-body">
+                    <p class="small text-muted mb-2">Advance received: <strong id="cancel_advance"></strong>. How much goes back to the customer is your decision for each case; whatever you do not refund stays with the shop.</p>
+                    <div class="form-group">
+                        <label><strong>Reason *</strong></label>
+                        <input type="text" id="cancel_reason" class="form-control" maxlength="255" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label><strong>Refund amount</strong></label>
+                            <input type="number" id="cancel_refund" class="form-control" min="0" step="any" value="0">
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label><strong>Refund paid from account</strong></label>
+                            <select id="cancel_refund_account" class="form-control"></select>
+                        </div>
+                    </div>
+                    <div id="cancelAlert" class="d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Back</button>
+                    <button type="submit" id="btnConfirmCancel" class="btn btn-danger">Cancel this order</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 5: Change source branch (Manager / Admin) -->
+<div id="changeSourceModal" tabindex="-1" role="dialog" aria-hidden="true" class="modal fade text-left">
+    <div role="document" class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Change source branch <span id="src_order_no"></span></h5>
+                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
+            </div>
+            <form id="changeSourceForm" onsubmit="return false;">
+                <input type="hidden" id="src_pre_order_id">
+                <div class="modal-body">
+                    <p class="small text-muted">Pick the branch the unit should come from instead. The current reservation is released and a unit at the new branch is reserved.</p>
+                    <div class="form-group">
+                        <label><strong>New source branch *</strong></label>
+                        <select id="src_new_from" class="form-control">
+                            @foreach ($warehouses as $w)<option value="{{ $w->id }}">{{ $w->name }}</option>@endforeach
+                        </select>
+                    </div>
+                    <div id="srcAlert" class="d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Back</button>
+                    <button type="submit" class="btn btn-dark">Change source</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
 <script type="text/javascript">
+    var kgAccounts = {!! $kgAccountsJson !!};
+
     $(document).ready(function() {
+        function refreshBookAccounts() {
+            kgFillAccounts($('#book_account'), kgAccounts, $('#book_to_warehouse').val(), $('#book_method').val());
+            var same = String($('#book_from_warehouse_id').val()) === String($('#book_to_warehouse').val());
+            $('#book_kind_hint').text(same ? 'Same branch: this is a Pre-Booking (the unit is kept aside here).' : 'Different branch: this is a Pre-Order (the unit is sent from the source branch).');
+        }
+        $('#book_to_warehouse, #book_method').on('change changed.bs.select', refreshBookAccounts);
+        $('#bookPreOrderModal').on('shown.bs.modal', refreshBookAccounts);
+
         // 1. Inter-Branch Stock Lookup
         $('#modal_product_select').on('change', function() {
             var pid = $(this).val();
@@ -479,9 +580,16 @@
                 },
                 error: function(xhr) {
                     $('#btnConfirmBook').prop('disabled', false).text('Confirm Pre-Order');
+                    if (xhr.responseJSON && xhr.responseJSON.needs_border_reason) {
+                        kgBorderReason(xhr.responseJSON.lines, function (reason) {
+                            $('#bookPreOrderForm input[name="border_price_reason"]').remove();
+                            $('#bookPreOrderForm').append($('<input type="hidden" name="border_price_reason">').val(reason)).trigger('submit');
+                        });
+                        return;
+                    }
                     var msg = 'Failed to book pre-order.';
-                    if (xhr.responseJSON && xhr.responseJSON.error) {
-                        msg = xhr.responseJSON.error;
+                    if (xhr.responseJSON && (xhr.responseJSON.error || xhr.responseJSON.message)) {
+                        msg = xhr.responseJSON.error || xhr.responseJSON.message;
                     }
                     $('#bookingAlert').removeClass('d-none alert-success').addClass('alert alert-danger').text(msg);
                 }
@@ -539,7 +647,13 @@
             $('#convert_advance_paid').text(advance.toFixed(2));
             $('#convert_balance_due').text(due.toFixed(2));
 
+            kgFillAccounts($('#convert_account'), kgAccounts, $(this).data('towh'), $('#convert_paying_method').val());
+            $('#convert_paying_method').data('towh', $(this).data('towh'));
             $('#deliverySaleModal').modal('show');
+        });
+
+        $('#convert_paying_method').on('change changed.bs.select', function () {
+            kgFillAccounts($('#convert_account'), kgAccounts, $(this).data('towh'), $(this).val());
         });
 
         // Submit Delivery Conversion
@@ -556,7 +670,8 @@
                 type: 'POST',
                 data: {
                     _token: '{{ csrf_token() }}',
-                    paying_method: method
+                    paying_method: method,
+                    pay_account_id: $('#convert_account').val()
                 },
                 success: function(resp) {
                     $('#btnConfirmDelivery').prop('disabled', false).text('Deliver & Print Invoice');
@@ -575,6 +690,52 @@
                     $('#convertAlert').removeClass('d-none alert-success').addClass('alert alert-danger').text(msg);
                 }
             });
+        });
+        // 5. Cancel with advance refund decision
+        $(document).on('click', '.btn-cancel-po', function () {
+            var advance = parseFloat($(this).data('advance')) || 0;
+            $('#cancel_pre_order_id').val($(this).data('id'));
+            $('#cancel_order_no').text($(this).data('orderno'));
+            $('#cancel_advance').text(kgMoney(advance));
+            $('#cancel_refund').val(0).attr('max', advance);
+            $('#cancel_reason').val('');
+            $('#cancelAlert').addClass('d-none');
+            kgFillAccounts($('#cancel_refund_account'), kgAccounts, $(this).data('towh'), 'cash');
+            $('#cancelPreOrderModal').modal('show');
+        });
+        $('#cancelPreOrderForm').on('submit', function (e) {
+            e.preventDefault();
+            $('#btnConfirmCancel').prop('disabled', true);
+            $.post('{{ url("pre_orders") }}/' + $('#cancel_pre_order_id').val() + '/cancel', {
+                _token: '{{ csrf_token() }}',
+                cancel_reason: $('#cancel_reason').val(),
+                refund_amount: $('#cancel_refund').val(),
+                refund_account_id: $('#cancel_refund_account').val()
+            }).done(function (resp) { location.reload(); })
+              .fail(function (xhr) {
+                  $('#btnConfirmCancel').prop('disabled', false);
+                  var msg = (xhr.responseJSON && (xhr.responseJSON.error || xhr.responseJSON.message)) || 'Cancel failed.';
+                  $('#cancelAlert').removeClass('d-none').addClass('alert alert-danger').text(msg);
+              });
+        });
+
+        // 6. Change source branch
+        $(document).on('click', '.btn-change-source', function () {
+            $('#src_pre_order_id').val($(this).data('id'));
+            $('#src_order_no').text($(this).data('orderno'));
+            $('#srcAlert').addClass('d-none');
+            $('#changeSourceModal').modal('show');
+        });
+        $('#changeSourceForm').on('submit', function (e) {
+            e.preventDefault();
+            $.post('{{ url("pre_orders") }}/' + $('#src_pre_order_id').val() + '/change-source', {
+                _token: '{{ csrf_token() }}',
+                from_warehouse_id: $('#src_new_from').val()
+            }).done(function () { location.reload(); })
+              .fail(function (xhr) {
+                  var msg = (xhr.responseJSON && (xhr.responseJSON.error || xhr.responseJSON.message)) || 'Could not change the source.';
+                  $('#srcAlert').removeClass('d-none').addClass('alert alert-danger').text(msg);
+              });
         });
     });
 </script>

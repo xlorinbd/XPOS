@@ -107,15 +107,15 @@
                                         <tr>
                                             <td>
                                                 <small class="text-muted d-block">Estimated Cost</small>
-                                                <h5>{{ number_format($serviceJob->estimated_cost ?? 0, 2) }}</h5>
+                                                <h5>{{ amount_format($serviceJob->estimated_cost ?? 0) }}</h5>
                                             </td>
                                             <td>
                                                 <small class="text-muted d-block">Actual Service Charge</small>
-                                                <h5 class="text-success">{{ number_format($serviceJob->service_charge ?? 0, 2) }}</h5>
+                                                <h5 class="text-success">{{ amount_format($serviceJob->service_charge ?? 0) }}</h5>
                                             </td>
                                             <td>
                                                 <small class="text-muted d-block">Parts Cost</small>
-                                                <h5>{{ number_format($serviceJob->parts_cost ?? 0, 2) }}</h5>
+                                                <h5>{{ amount_format($serviceJob->parts_cost ?? 0) }}</h5>
                                             </td>
                                         </tr>
                                     </tbody>

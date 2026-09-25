@@ -302,7 +302,7 @@
                     <x-amount-currency-symbol :amount="$product_sale_data->net_unit_price" :currency_symbol="$lims_sale_data->currency->symbol" />
                     @if (!empty($topping_prices))
                         <br><small>+
-                            {{ implode(' + ', array_map(fn($price) => number_format($price, $general_setting->decimal, '.', ','), $topping_prices)) }}</small>
+                            {{ implode(' + ', array_map(fn($price) => amount_format($price), $topping_prices)) }}</small>
                     @endif
                 </td>
                 <td style="border:1px solid #222;padding:1px 3px;text-align:center">

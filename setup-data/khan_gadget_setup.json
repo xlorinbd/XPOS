@@ -1,0 +1,252 @@
+{
+  "_note": "Setup data collected from the client. Items marked dummy:true are placeholders to be replaced later from Business Settings / Admin Panel. Not yet applied to the application.",
+  "company": {
+    "name": "KHAN GADGET",
+    "tagline": "Eternal Tech Companion",
+    "logo_file": "khan-gadget-logo.png",
+    "contact_person": "MD ROWSHON",
+    "address": "Railgate, Rajshahi",
+    "phone": "01XXXXXXXXX",
+    "email": "info@example.com",
+    "placeholders": [
+      "address",
+      "phone",
+      "email"
+    ]
+  },
+  "warehouse": {
+    "name": "Main Warehouse",
+    "address": "Placeholder",
+    "phone": "01XXXXXXXXX",
+    "dummy": true
+  },
+  "branches": [
+    {
+      "name": "Elephant Road Branch",
+      "type": "branch",
+      "address": "Shop No: 136 | Ground Floor, Computer City Center (Ex Multiplan Center), New Elephant Road, Dhaka-1205",
+      "phone": "01974122755"
+    },
+    {
+      "name": "Bashundhara Branch",
+      "type": "branch",
+      "address": "Shop No: 50 | Block: D | Level: 6, Bashundhara City Shopping Complex, Tejturi Bazar West, Panthapath, Dhaka-1215",
+      "phone": "01717107343"
+    },
+    {
+      "name": "Chattogram Branch",
+      "type": "branch",
+      "address": "Shop No: 14 (Beside City Bank), Level: 2 (Lift: 1), System Imperial Complex, 153, Kapasgola Road, Chawkbazar, Chattogram-4203",
+      "phone": "01790374794"
+    },
+    {
+      "name": "Mymensingh Branch",
+      "type": "branch",
+      "address": "Shop No: 333 | Level: 3 (Lift: 2), Aloka Nodi Bangla Complex, 4, Ram Babu Road, Ganginar Par, Mymensingh-2200",
+      "phone": "01340186567"
+    },
+    {
+      "name": "Rangpur Branch",
+      "type": "branch",
+      "address": "Shop No: 55 | Lift: 4, RAMC Shopping Complex, Check Post, Rangpur-5400",
+      "phone": "01333904589"
+    },
+    {
+      "name": "Sylhet Branch",
+      "type": "branch",
+      "address": "Shop: 29/2 | Ground Floor, Surma Tower, VIP Road, Taltola, Sylhet-3100",
+      "phone": "01754684324"
+    },
+    {
+      "name": "Bogura Branch",
+      "type": "branch",
+      "address": "Shop No: 56 | Lift: 5, Runner Plaza, Nawabbari Rd, Bogura-5800",
+      "phone": "01974122733"
+    },
+    {
+      "name": "Rajshahi Branch 1",
+      "type": "branch",
+      "address": "Shop No: 1 | Ground Floor, 29, Sarkar Tower, Railgate (Bindur Mor), Rajshahi-6100",
+      "phone": "01719026580"
+    },
+    {
+      "name": "Rajshahi Branch 2",
+      "type": "branch",
+      "address": "Shop No: 82 | Level: 2 (1st Floor), Rajshahi New Market, Boalia, Rajshahi-6100",
+      "phone": "01341246152"
+    },
+    {
+      "name": "Dhaka Service Center",
+      "type": "service_center",
+      "address": "Holding No: 31 | Lift: 4, New Elephant Road, Dhaka-1205 (Eastern Mallika/ICT Bhaban Goli)",
+      "phone": "01331598789"
+    },
+    {
+      "name": "Bogura Service Center",
+      "type": "service_center",
+      "address": "Shop No: 04 | Ground Floor, Azad Complex, Nawabbari Rd, Bogura-5800",
+      "phone": "01341912959"
+    },
+    {
+      "name": "Rajshahi Service Center",
+      "type": "service_center",
+      "address": "Shop No: 1 - 2 | Level: 2, Jamal Super Market, Shaheb Bazar, Rajshahi-6100",
+      "phone": "01754674984"
+    }
+  ],
+  "accounts": {
+    "dummy": true,
+    "main": [
+      "KG All Bank",
+      "KG All Mobile Banking"
+    ],
+    "payment_gateway_pending_confirmation": [
+      "KG ALL POS",
+      "KG SSL"
+    ],
+    "per_branch": [
+      "Cash Register",
+      "Bank Account",
+      "Mobile Wallet"
+    ]
+  },
+  "staff": {
+    "dummy": true,
+    "items": [
+      {
+        "name": "Dummy Admin",
+        "role": "Admin",
+        "branches": [
+          "all"
+        ]
+      },
+      {
+        "name": "Dummy Manager",
+        "role": "Manager",
+        "branches": [
+          "all"
+        ]
+      },
+      {
+        "name": "Dummy Branch Manager",
+        "role": "Branch Manager",
+        "branches": [
+          "Rajshahi Branch 1"
+        ]
+      },
+      {
+        "name": "Dummy Seller",
+        "role": "Seller",
+        "branches": [
+          "Rajshahi Branch 1"
+        ]
+      }
+    ]
+  },
+  "lists": {
+    "dummy": true,
+    "cargo_companies": [
+      "Cargo Company A",
+      "Cargo Company B"
+    ],
+    "charger_models": [
+      "HP 65W Type-C",
+      "Dell 65W",
+      "Lenovo 65W Type-C",
+      "Asus 65W"
+    ],
+    "processors": [
+      "Intel Core i5-1135G7",
+      "Intel Core i7-1165G7",
+      "Intel Core i7-1255U",
+      "AMD Ryzen 5 5500U",
+      "AMD Ryzen 5 7535HS",
+      "AMD Ryzen 7 5700U"
+    ]
+  },
+  "catalog": {
+    "note": "Starter values; all editable from Admin Panel. Brands taken from khangadget.com. Sub categories are sample values.",
+    "category_levels": 3,
+    "categories": {
+      "Laptop": [
+        "Gaming",
+        "Business",
+        "Everyday",
+        "Ultrabook",
+        "MacBook",
+        "Workstation"
+      ],
+      "Accessories": [
+        "Charger/Adapter",
+        "Bag",
+        "Mouse",
+        "Keyboard",
+        "Others"
+      ]
+    },
+    "brands": [
+      "Acer",
+      "Apple",
+      "ASUS",
+      "Dell",
+      "HP",
+      "Lenovo",
+      "Microsoft",
+      "MSI",
+      "Razer",
+      "Samsung",
+      "Toshiba",
+      "Xiaomi"
+    ],
+    "product_conditions": [
+      "Used",
+      "Open Box",
+      "Brand New (Intact)",
+      "Box Opend (Brand New Just Box Open)"
+    ],
+    "website_condition_labels_for_reference": [
+      "BRAND NEW INTACT BOX",
+      "BRAND NEW WITHOUT BOX",
+      "PRE-OWNED"
+    ],
+    "laptop_fields": [
+      "name",
+      "brand",
+      "model",
+      "processor",
+      "ram",
+      "rom",
+      "display",
+      "dedicated_graphics",
+      "remarks",
+      "adapter",
+      "condition",
+      "regular_price",
+      "discount_price",
+      "last_border_price",
+      "purchase_price",
+      "images"
+    ],
+    "accessory_fields": {
+      "required": [
+        "name",
+        "category"
+      ],
+      "optional": [
+        "brand",
+        "model_type",
+        "color",
+        "compatible_brand_model",
+        "wattage",
+        "connector",
+        "price",
+        "image"
+      ]
+    },
+    "low_stock_alert": {
+      "scope": "per_product",
+      "default": null,
+      "note": "Set individually per product by Admin/Manager"
+    }
+  }
+}

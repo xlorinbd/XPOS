@@ -23,6 +23,11 @@ class User extends Authenticatable
         return $this->is_active;
     }
 
+    public function branches()
+    {
+        return $this->belongsToMany(Warehouse::class, 'user_warehouses', 'user_id', 'warehouse_id');
+    }
+
     public function holiday() {
         return $this->hasMany('App\Models\Holiday');
     }

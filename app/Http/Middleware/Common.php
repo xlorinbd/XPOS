@@ -115,7 +115,7 @@ class Common
         View::share('role_has_permissions_list', $role_has_permissions_list);
 
         $categories_list = Cache::remember('category_list', 60*60*24*365, function () {
-            return DB::table('categories')->where('is_active', true)->get();
+            return category_paths(DB::table('categories')->where('is_active', true)->get());
         });
         View::share('categories_list', $categories_list);
 
